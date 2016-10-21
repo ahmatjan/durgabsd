@@ -1,0 +1,179 @@
+OPENVAS-MANAGER POSTGRESQL BACKEND HOWTO
+========================================
+
+Please note: Everything should work using Postgres, but this backend has
+seen little testing so far.  The reference system used for development is
+Debian GNU/Linux 'Jessie' 8.
+
+1 Install Postgres.
+
+	(Debian: postgresql, postgresql-contrib, postgresql-server-dev-9.4).
+
+2 Run cmake with this additional parameter:
+
+	-DBACKEND=POSTGRESQL
+
+3 Build Manager as usual.
+
+4 Setup Postgres User and DB (/usr/share/doc/postgresql-common/README.Debian.gz)
+
+	sudo -u postgres sh
+	createuser -DRS mattm       # mattm is your OS login name
+	createdb -O mattm tasks
+
+5 Setup DB extensions and permission.
+
+	sudo -u postgres sh  # if you logged out after step 4
+	psql tasks
+	create role dba with superuser noinherit;
+	grant dba to mattm;
+	create extension "uuid-ossp";
+
+6 Make Postgres aware of the openvas libraries if not installed
+  in a ld-aware directory. For example create file /etc/ld.so.conf.d/openvas.conf
+  with appropriate path and then run ldconfig.
+
+7 Run Manager as usual.
+
+8 To run SQL on the database.
+
+	psql tasks
+
+
+Migrating from SQLite to PostgreSQL
+-----------------------------------
+
+1 Run "openvas-migrate-to-postgres" into a clean newly created
+  PostgreSQL database like described above. It is essentially important
+  that you do not run "--rebuild" before the migration as it would
+  create a fresh one and therefore prevent migration.
+
+  If you accidentally already rebuild the database or for other reasons
+  want to start from scratch, apply the dropping of all data as
+  described below.
+
+2 Run "openvasmd --rebuild".
+
+3 Run "openvas-scapdata-sync".
+
+4 Run "openvas-certdata-sync".
+
+
+Handy script to drop all data
+-----------------------------
+
+#!/bin/sh
+
+export PGOPTIONS='--client-min-messages=warning'
+
+PSQL="psql -q tasks --pset pager=off -t -c"
+
+$PSQL "`psql tasks --pset pager=off -t -c \"select 'drop table '||schemaname||'.'||tablename||' CASCADE;' from pg_tables where schemaname = 'public' order by schemaname, tablename;\"`"
+
+$PSQL "DROP FUNCTION IF EXISTS public.common_cve(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.create_index(text, text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.create_index(text, text, text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.current_severity(real, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.dynamic_severity();";
+$PSQL "DROP FUNCTION IF EXISTS public.group_concat_pair(text, text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.hosts_contains(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.iso_time(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.level_max_severity(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.level_min_severity(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.lower(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.m_now();";
+$PSQL "DROP FUNCTION IF EXISTS public.make_uuid();";
+$PSQL "DROP FUNCTION IF EXISTS public.max_hosts(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.next_time(integer, integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.now();";
+$PSQL "DROP FUNCTION IF EXISTS public.order_inet(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.order_message_type(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.order_port(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.order_role(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.order_threat(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_active(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_host_count(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_progress(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_progress_active(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_result_host_count(integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_severity(integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_severity(integer, integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_severity_count(integer, integer, integer, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.report_severity_count(integer, integer, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.resource_name(text, text, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.run_status_name(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_class();";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_in_level(double precision, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_in_level(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_matches(double precision, double precision);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_matches_ov(double precision, double precision);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_to_level(double precision, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_to_level(text, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.severity_to_type(double precision);";
+$PSQL "DROP FUNCTION IF EXISTS public.t();";
+$PSQL "DROP FUNCTION IF EXISTS public.tag(text, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_last_report(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_second_last_report(integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_severity(integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_severity(integer, integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_threat_level(integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_threat_level(integer, integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_trend(integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.task_trend(integer, integer, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.uniquify(text, text, integer, text);";
+$PSQL "DROP FUNCTION IF EXISTS public.user_can_everything(text);";
+$PSQL "DROP FUNCTION IF EXISTS public.user_has_super_on_resource(text, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.user_owns(text, integer);";
+$PSQL "DROP FUNCTION IF EXISTS public.valid_db_resource_type(text);";
+
+$PSQL "DROP AGGREGATE IF EXISTS public.group_concat (text, text);";
+$PSQL "DROP AGGREGATE IF EXISTS public.group_concat_pair (text, text, text);";
+
+$PSQL "DROP INDEX IF EXISTS public.nvt_cves_by_oid;";
+$PSQL "DROP INDEX IF EXISTS public.nvt_selectors_by_family_or_nvt;";
+$PSQL "DROP INDEX IF EXISTS public.nvt_selectors_by_name;";
+$PSQL "DROP INDEX IF EXISTS public.nvts_by_creation_time;";
+$PSQL "DROP INDEX IF EXISTS public.nvts_by_family;";
+$PSQL "DROP INDEX IF EXISTS public.nvts_by_name;";
+$PSQL "DROP INDEX IF EXISTS public.report_host_details_by_report_host_and_name_and_value;";
+$PSQL "DROP INDEX IF EXISTS public.report_hosts_by_report_and_host;";
+$PSQL "DROP INDEX IF EXISTS public.results_by_report;";
+
+echo -n "\\d+: "
+$PSQL "\d+"
+
+echo "\\df: "
+$PSQL "\df"
+
+
+Analyzing the size of the tables
+--------------------------------
+
+In case the database grows in size and you want to understand
+which of the tables is responsible for it, there are two queries
+to check table sizes:
+
+Biggest relations:
+
+SELECT nspname || '.' || relname AS "relation",
+    pg_size_pretty(pg_relation_size(C.oid)) AS "size"
+  FROM pg_class C
+  LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+  WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+  ORDER BY pg_relation_size(C.oid) DESC
+  LIMIT 20;
+
+Biggest tables:
+
+SELECT nspname || '.' || relname AS "relation",
+    pg_size_pretty(pg_total_relation_size(C.oid)) AS "total_size"
+  FROM pg_class C
+  LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+  WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+    AND C.relkind <> 'i'
+    AND nspname !~ '^pg_toast'
+  ORDER BY pg_total_relation_size(C.oid) DESC
+  LIMIT 20;
+
+These queries were taken from https://wiki.postgresql.org/wiki/Disk_Usage
+

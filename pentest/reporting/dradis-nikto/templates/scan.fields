@@ -1,0 +1,11 @@
+scan.filename
+scan.targetip
+scan.targethostname
+scan.targetport
+scan.targetbanner
+scan.starttime
+scan.sitename
+scan.siteip
+scan.hostheader
+scan.errors
+scan.checks

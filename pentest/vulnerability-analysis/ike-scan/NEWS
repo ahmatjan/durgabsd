@@ -1,0 +1,339 @@
+This file gives a brief overview of the major changes between each ike-scan
+release.  For more details please read the ChangeLog file or the git commit
+history.
+
+ike-scan v1.9.4 2013-11-14:
+
+* Added support for key exchange payloads with diffie-hellman ECP groups 19,
+  20 and 21.
+
+* Moved ike-scan development from internal SVN repository to github at
+  https://github.com/royhills/ike-scan. The move to git means that the commit
+  object names are now SHA1 hashes instead of increasing integer values. So
+  they are longer suitable for internal file versions with rcsid variables.
+  Accordingly the rcsid varable have been removed.
+
+* Fixed most occurances of set but unused variables as reported by GCC 4.6.
+
+* Added support for IPnet:netmask format for target networks.
+
+* Improved handling of multiplier suffix for --bandwidth and --interval
+  options: allow either upper or lowercase letters, and give an error for
+  unknown multiplier letters.
+
+* Enabled compiler security options -fstack-protect, -D_FORTIFY_SOURCE=2 and
+  -Wformat-security if they are supported by the compiler. Also enabled extra
+  warnings -Wwrite-strings and -Wextra.
+
+* The function that converts strings to numbers is now stricter, and no longer
+  permits any invalid characters.  This improves error reporting in some invalid
+  cases that previously gave no error, e.g. using "1=7/256" in an advanced
+  transform specification.
+
+* New backoff patterns for Cisco PIX 7.0.
+
+* New vendor ids for Windows 2008 server, plus contributions by
+  Jesper Kückelhahn and Jonathan Claudius.
+
+* ike-scan now uses the OpenBSD strlcat and strlcpy functions instead of
+  the standard strcat, strncat, strcpy and strncpy functions.  This reduces
+  the chance of buffer overflow bugs.
+
+* Various minor improvements and bugfixes.
+
+ike-scan v1.9:
+
+* ike-scan wiki at http://www.nta-monitor.com/wiki/
+  This will contain ike-scan documentation and associated IPsec information.
+
+* IKEv2 support with --ikev2 option that sends IKE version 2 format packets,
+  and version 2 packets that are received are correctly decoded.  The IKEv2
+  support is currently experimental as it has only been tested against one
+  implementation (strongSwan), and it only supports the default proposal.
+
+* New --rcookie option allows the responder cookie to be set to the specified
+  value in outgoing packets.  The default is zero.
+
+* psk-crack allows the dictionary to be read from stdin with the
+  --dictionary=- option.  This allows another program to generate
+  candidate passwords, e.g.
+  john --incremental --stdout | psk-crack --dictionary=- psk-file
+
+* New --nat-t option to enable RFC 3947 NAT Traversal.  This option adds the
+  Non-ESP marker to outbound packets and strips it from responses.  It also
+  changes the default UDP source and destination ports both to 4500.
+
+* New --sourceip option, which allows spoofing source IP address.  This only
+  works on systems that support raw sockets.
+
+* Allow matching backoff patterns which contain only one packet.  This is for
+  simplistic implementations that don't perform any backoff at all.  There are
+  very few of these systems, so this absense of a pattern is still useful for
+  fingerprinting.
+
+* psk-crack is able to crack passwords hased with the Nortel Contivity
+  proprietary algorithm as well as those using the standard algorithm.
+
+* New --shownum option, which causes the number of each packet received to
+  be displayed before the packet details.
+
+* New --timestamp option, which causes the time when the packet was received
+  to be displayed in %H:%M:%S.%u format before the packet details.
+
+* New --randomseed option, which allows the PRNG seed to be specified.
+  This allows packets containing payloads with random data, such as Key
+  Exchange and Nonce to be repeatable.
+
+* Changed PRNG implementation from the standard rand() function to the
+  Mersenne Twister. This is both a better PRNG and is also reproducable across
+  different platforms.
+
+* Changed revision control system from CVS to SVN, with the result that the
+  individual source file version numbers as reported with --version or
+  ident(1) are now integers like 9876 rather than 1.x format.
+
+* Improved "make check" tests to check new features and increase code
+  coverage.
+
+ike-scan v1.8:
+
+* Added many new vendor ID and UDP backoff patterns.  There are now a total
+  of 29 backoff patterns, and 135 vendor ID patterns.
+
+* Several bugs fixed in both psk-crack and ike-scan.  Notable fixes include:
+
+  o Numeric arguments are now checked for validity
+  o Perform 64-bit time calculations correctly
+  o Correct psk-crack handling of multiple PSK records
+  o Fixed bug which caused hostnames containing hyphens to fail with an error.
+  o Name lookup errors are now non-fatal.
+
+* Added support for more flexible transform specification, which allows
+  an arbitary number of transform attributes to be specified in any order.
+
+  This new method is specified by using an alternative syntax for the --trans
+  option: --trans=(attr=value, ...).  The old syntax of --trans=a,b,c,d is
+  still available.  Note that the brackets are special to some shells, and
+  may need to be quoted.
+
+* Made the specification of the lifetime and lifesize transform attributes
+  with the --lifetime and --lifesize options more flexible.  Now, the argument
+  to these options can take three different forms:
+
+  o The string "none" - Do not add any lifetime or lifesize attribute.
+  o A decimal integer, e.g. 86400 - Add a 4-byte value.
+  o A hex number, e.g. 0xff - Add a variable length value.
+
+  The hex notation allows arbitary length lifetime and lifesize attributes
+  to be added
+
+* Changed default packet-rate calculation from interval to bandwidth.  The
+  default outgoing bandwidth is 56000 bits per second, and can be changed with
+  the --bandwidth option.  It is still possible to specify an inter-packet
+  interval instead with the --interval option.
+
+* Display the version, flags and msgid from the ISAKMP header if they don't
+  contain the expected value.
+
+* Decode and display CERTIFICATE, DELETE and NOTIFICATION payloads if they
+  are received.
+
+* Display the responder cookie from the ISAKMP header unless quiet is in effect.
+
+* Display the SPI if its size is non-zero.  Normally, the SPI size is zero
+  during Phase-1, but I've observed some implementations to use a non-zero
+  length, which is permitted by RFC 2408.
+
+* Added new options to allow more control of the outgoing packet.  Note that
+  some of these options can make the outgoing packet non RFC compliant:
+
+  o --spisize Adds a random SPI of the specified length to the proposal payload
+  o --cookie Sets the initiatior cookie to the specified static value
+  o --hdrflags Sets the flags field in the ISAKMP header
+  o --hdrmsgid Sets the MsgID field in the ISAKMP header
+  o --exchange sets the exchange field in the ISAKMP header to the specified value
+  o --noncelen (-c) allows the length of the nonce data to be specified
+  o --bandwidth (-B) specify desired outgoing bandwidth usage
+  o --certreq (-C) Adds a CertificateRequest payload to the outgoing packet
+  o --headerlen (-L) allows the ISAKMP header length to be manually specified
+  o --mbz (-Z) allows the value for the reserved fields that "must be zero" to be sent to a specified non-zero value
+  o --headerver (-E) allows the header version in the ISAKMP header to be changed from the default of 0x10 (v1.0)
+  o --protocol (-j) allows the proposal protocol to be changed from the default
+  o --transid (-k) allows the transform id to be changed from the default
+  o --doi (-D) allows the DOI in the SA to be changed from the default
+  o --situation (-S) allows the Situation in the SA to be changed from the default
+
+* The full help output is now only displayed if it is specifically requested
+  by running ike-scan with the --help (-h) option.  Usage errors now result in
+  a smaller help output.  This avoids outputting a multi-screen usage message
+  just because of a typo on the command line.
+
+* drop root privilege after binding the local port if we are running SUID.
+  This improves security somewhat.
+
+* Make POSIX regular expression support mandatory.  Previously, it was
+  optional, but I'm not aware of any supported systems that lack it, and we
+  are using it in more and more places.
+
+* Improved mapping of ID numbers to names in decode.  This allows sparse IDs
+  ranges (e.g. 1,2,3,65000) to be supported, which means that we can now decode
+  XAUTH authentication method amongst other things.
+
+* Added SO_BROADCAST option to UDP socket to allow sending to broadcast
+  addresses.  Previously this gave a permission denied error, even for root.
+
+* Added OpenSSL exception to the copyright notice, which permits linking of the
+  program against OpenSSL.  This is to allow the use of OpenSSL in this GPL v2
+  licensed program.
+
+ike-scan v1.7:
+
+* Improved "make check" tests, so they now check more areas including Pre-
+  Shared Key cracking, HMAC and Hash speeds, and HMAC and Hash test vectors.
+
+* Added --nodns (-N) option to prevent DNS lookups.  With this option,
+  target hosts are not processed with gethostbyname(), which can avoid
+  delays when the system running ike-scan does not have functioning DNS.
+
+* Added additional authentication methods and hash algorithms to the output
+  decoding functions in isakmp.c
+
+* Added new psk-crack program to perform offline aggressive mode pre-shared
+  key cracking using the output from ike-scan with the --pskcrack option.
+  This psk-crack program supports both dictionary and brute-force cracking
+  modes against MD5 and SHA1-based HMAC hashes.
+
+* Added ability to output aggressive mode pre-shared key (PSK) parameters
+  for later offline cracking with the --pskcrack (-P) option.  This option
+  outputs the pre-shared key parameters as colon-separated hex-encoded values
+  in the following format:
+
+  g_xr:g_xi:cky_r:cky_i:sai_b:idir_b:ni_b:nr_b:hash_r
+
+  These parameter details can be used by the psk-crack program (which is
+  supplied as part of the ike-scan package) to attempt to crack the pre-
+  shared key.
+
+* Added support for IKE over TCP with the --tcp (-T) option.  Two TCP
+  variants are supported:
+
+  --tcp=1 (-T1) specifies raw IKE over TCP as used by Checkpoint; and
+  --tcp=2 (-T2) specifies encapsulated IKE over TCP as used by Cisco.
+
+  Note that you can only scan one host at a time when using IKE over TCP.
+
+  When using TCP, you can modify the connect() timeout with the
+  --tcptimeout (-O) option.  Default timeout is 10 seconds.
+
+* Added experimental timing error smoothing code, which is based on the TCP RTT
+  smoothing algorithm in RFC 793.  This is disabled by default; to enable it,
+  #define ALPHA in ike-scan.h
+
+* Allow the ID (Identity) payload that is specified with the --id option to
+  be specified as either a string e.g. --id=test or a hex value with a leading
+  0x e.g. --id=0xdeadbeef.  Note that you will probably need to change previous
+  ID payload strings because of this change, as previously they were always
+  interpreted as hex.
+
+* Added support for OpenSSL MD5 and SHA1 hash functions.  These are generally
+  faster than the hash functions supplied with ike-scan, which is of benefit
+  when performing pre-shared key cracking.
+
+  To compile with OpenSSL, use the --with-openssl option to configure.  With
+  this option, configure will search for the OpenSSL libraries in several
+  standard locations.
+
+* Added --random (-R) option to randomise the host list before scanning.
+  This causes the hosts to be scanned in a random order, which may be less
+  obvious than the default sequential scanning.  The Knuth shuffle algorithm
+  is used to randomise the list.
+
+* Changed host entry from a linked-list to a dynamic array which decreases the
+  memory required from 56 bytes per target host to 45 bytes.
+
+* Added several new Vendor ID patterns.
+
+* Added several new UDP backoff patterns.
+
+ike-scan v1.6:
+
+* ike-scan will now display multiple Vendor ID payloads if the server sends
+  more than one.  Previously, it would only display the first Vendor ID and
+  ignore the others.
+
+* Added support for ISAKMP lifetime size transform attribute with the
+  --lifesize (-z) option.  This is specified as kilobytes.  The default is
+  0 which means don't include the lifetime size attribute.
+
+* Added support for GSS IDs with --gssid (-G) option.  GSS IDs are described in
+  draft-ietf-ipsec-isakmp-gss-auth-07.txt.  This is used by Windows-2000
+  IPsec for Kerberos authentication.
+
+* Allow target hosts to be specified as IPnet/bits to include all hosts in
+  the given network, or IPstart-IPend to include all hosts in the inclusive
+  range as well as single hostnames or IP addresses.
+
+* Added support for Vendor ID fingerprinting.  The file "ike-vendor-ids"
+  contains a list of known Vendor ID patterns, specified as Posix extended
+  regular expressions.  These are used to match against the ascii hex
+  representation of any returned Vendor IDs, and the name of the entry is
+  displayed if a match is found.
+
+* SA transform attributes and ID payloads are now decoded, and basic details
+  (name and size) are displayed for payload types that we don't decode yet.
+  Added --quiet option to prevent this decoding if it's not required.
+  Added --multiline option to split the decode over multiple lines - one line
+  per payload.  With --multiline, each payload decode line starts with a TAB.
+
+ike-scan v1.5.1:
+
+* Fixed a bug which could cause a negative value to be passed to select()
+  when collecting backoff fingerprints.  This would result in select()
+  returning EINVAL.
+
+ike-scan v1.5:
+
+* Aggressive mode is now supported.  The --aggressive (-A) option specifies
+  aggressive mode.
+
+* The --trans option can be specified multiple times to generate an arbitrary
+  number of custom transforms in the ISAKMP SA Proposal.
+
+* The --vendor option can be specified multiple times to generate an arbitrary
+  number of Vendor ID payloads.
+
+* UDP engine improvements: Dynamically adjust select() timeout, removing the
+  need for a --selectwait argument; keep track of cumulative timing error, and
+  use this to adjust the timing to compensate; calculate timings in
+  microseconds rather than milliseconds to improve accuracy; and some minor
+  tuning.
+
+ike-scan v1.4:
+
+* Two additions to permit Vendor ID fingerprinting.
+  1. Allow the specification of an arbitrary Vendor ID payload using the
+     --vendor option.
+  2. Display any Vendor ID payload returned by the target host.
+
+ike-scan v1.3:	(Unofficial release)
+
+* Added support for per-pattern-entry fuzz values in the backoff patterns
+  file which allows more complex backoff patterns to be matched.
+* Added new backoff patterns for "watchguard-soho" and "sonicwall-pro".
+
+ike-scan v1.2:
+
+* Fixed format string vulnerability in syslog() call.
+* ike-scan now builds and runs on HP Tru64 Unix.
+
+ike-scan v1.1:
+
+* Added new backoff patterns for Cisco Concentrator and isakmpd.
+* ike-scan now builds and runs on Windows/Cygwin, old libc5 Linux systems, and
+  Solaris 2.8 / SPARC.
+* Windows command-line binary released.
+
+ike-scan v1.0: (Initial release)
+
+* Compiles and runs on Debian Linux 2.2 "potato" and 3.0 "woody", FreeBSD 4.3,
+  and OpenBSD 3.1.

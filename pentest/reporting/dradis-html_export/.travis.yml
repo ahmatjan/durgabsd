@@ -1,0 +1,11 @@
+rvm:
+  - 1.9.3
+notifications:
+  irc:
+    on_success: change
+    on_failure: always
+    channels:
+      - "irc.freenode.org#dradis"
+
+bundler_args: --path vendor/bundle
+script: "bundle exec rake spec"

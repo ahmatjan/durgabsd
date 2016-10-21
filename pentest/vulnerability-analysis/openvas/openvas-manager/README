@@ -1,0 +1,97 @@
+About OpenVAS Manager
+---------------------
+
+The OpenVAS Manager is a layer between the OpenVAS Scanner and various
+client applications such as the web client GSA (Greenbone Security
+Assistant), the command line client omp (of openvas-cli) and the classic
+application GSD (Greenbone Security Desktop).  Among other features, it
+adds server-side storage of scan results and it removes the need for a scan
+client to keep the connection open until the scan finishes.  All
+communication between OpenVAS Manager and its clients is done via the
+XML-based OpenVAS Management Protocol (OMP).
+
+OpenVAS Manager is licensed under GNU General Public License Version 2 or
+any later version.  Please see file COPYING for details.
+
+All parts of OpenVAS Manager are Copyright (C) by Greenbone Networks GmbH
+(see http://www.greenbone.net).
+
+
+Howto use
+---------
+
+Note:
+The Manager connects to the scanner using certificate based authentication.
+The certificate needs to be created for this communication.
+Please see the file INSTALL for instructions.
+
+Starting OpenVAS Manager:
+For example, if openvassd is running on port 9391, the following command
+starts the Manager on port 9390.
+
+    openvasmd
+
+A command like
+
+    openvasmd --update
+
+or
+
+    openvasmd --rebuild
+
+will update the Manager's NVT cache, and then exit.  The cache must be
+updated every time the Scanner syncs with the NVT feed.  The --rebuild
+option is faster as it locks the database the entire time, whereas --update
+allows clients to access the Manager during the update.
+
+A rebuild within a running Manager can also be invoked by sending the main
+Manager process the SIGHUP signal (signal number 1).
+
+The program usage message follows.
+
+    Usage:
+      openvasmd [OPTION...] - Manager of the Open Vulnerability Assessment System
+
+    Help Options:
+      -h, --help                  Show help options
+
+    Application Options:
+      --backup                    Backup the database.
+      -d, --database=<file>       Use <file> as database.
+      --disable-cmds=<commands>   Disable comma-separated <commands>.
+      --disable-encrypted-credentials
+                                  Do not encrypt or decrypt credentials.
+      --disable-password-policy   Do not restrict passwords to the policy.
+      --disable-scheduling        Disable task scheduling.
+      --create-user=<username>    Create admin user <username> and exit.
+      --delete-user=<username>    Delete user <username> and exit.
+      -f, --foreground            Run in foreground.
+      --list-users                List users and exit.
+      -a, --listen=<address>      Listen on <address>.
+      --listen2=<address>         Listen also on <address>.
+      --max-ips-per-target=<number>
+                                  Maximum number of IPs per target.
+      -m, --migrate               Migrate the database and exit.
+      --create-credentials-encryption-key
+                                  Create a key to encrypt credentials.
+      --encrypt-all-credentials   (Re-)Encrypt all credentials.
+      --new-password=<password>   Modify user's password and exit.
+      --optimize=<name>           Run an optimization: vacuum, analyze,
+                                  cleanup-config-prefs,
+                                  cleanup-result-severities,
+                                  remove-open-port-results
+                                  or cleanup-port-names.
+      -p, --port=<number>         Use port number <number>.
+      --port2=<number>            Use port number <number> for address 2.
+      --progress                  Display progress during --rebuild and --update.
+      --rebuild                   Rebuild the NVT cache and exit.
+      --role=<role>               Role for --create-user.
+      -l, --slisten=<address>     Scanner (openvassd) address.
+      -s, --sport=<number>        Scanner (openvassd) port number.
+      -u, --update                Update the NVT cache and exit.
+      --user=<username>           User for --new-password.
+      --gnutls-priorities=<priorities-string>
+                                  Sets the GnuTLS priorities for the Manager socket.
+      --dh-params=<file>          Diffie-Hellman parameters file
+      -v, --verbose               Print tracing messages.
+      --version                   Print version and exit.

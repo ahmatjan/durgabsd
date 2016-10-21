@@ -1,0 +1,7 @@
+#[Title]#
+SSL Cert Information
+
+#[Details]#
+Ciphers: %ssl.ciphers%
+Issuers: %ssl.issuers%
+Info: %ssl.info%

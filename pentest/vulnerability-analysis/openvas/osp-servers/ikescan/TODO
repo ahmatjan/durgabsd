@@ -1,0 +1,15 @@
+TODO for further releases:
+
+- Concider using --id=this_host_name() --idtype=3 for aggressive mode
+- Implement locking (Needed at all?)
+- Only one report for each test run?
+- Sync/verify Encryption algorithms, Hash algorithms, Authentication methods and Diffie-Hellmann groups with ike-scan
+- Verify/validate user-input/config
+
+TODO from ike-scan.nasl wrapper:
+
+* Script OIDs
+* Reference to known vulnerabilities
+* IKE v2 (not yet fully supported by ike-scan)
+* Support for known vendor IDs
+* PSK crack

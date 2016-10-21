@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ServerConfig>
+    <Metasploit>
+        <path>Path to Metasploit</path>
+        <cachefolder>Folder where generated payloads will be stored for the session</cachefolder>
+        <resourcefolder>Folder where generated MSF resource files will be stored for the session</resourcefolder>
+        <msfpayload>
+            <id>Payload ID. IDs are case sensitive (Linux). e.g. You may use a digit or a string compatible with your file system naming convention</id>
+            <payload>Metasploit payload that will be generated with msfvenom. A valid Metasploit payload must be provided</payload>
+            <lhost>LHOST payload setting</lhost>
+            <lport>LPORT payload setting</lport>
+            <encoder>Encoder supported by msfvenom</encoder>
+            <badchars>List of bad characters that should be avoided while encoding. Not applicable with python payloads</badchars>
+            <iterations>Number of encoding iterations while generating the payload. Not applicable with python payloads</iterations>
+            <perpetual>Whether maligno client will spawn a new shell indefinitely every 20 seconds, when the current one exists or dies. Not applicable with python payloads</perpetual>
+        </msfpayload>
+    </Metasploit>
+    <Scope>
+        <network>Hosts in scope. Maligno will send payloads to a given IP address, a network range in CIDR notation, or just to "ANY" address</network>
+    </Scope>
+    <Server>
+        <threading>Multithreading support when serving requests. Values can be true or false</threading>
+        <addr>IP address where Maligno will start on</addr>
+        <port>TCP port where Maligno will be waiting for connections</port>
+        <ssl>SSL support enabled.  Values can be true or false</ssl>
+        <sslcert>Path to SSL certificate</sslcert>
+        <proxy>SOCKS4a proxy support. Values can be true or false</proxy>
+        <proxyport>Port where SOCKS4a proxy will be waiting for connections</proxyport>
+        <failsafe>Enables on the fly payload generation with a preconfigured alternative payload. This is used when maligno client detects a situation where meterpreter could potentially have problems for phoning home</failsafe>
+        <profile>Path to a Maligno profile</profile>
+    </Server>
+</ServerConfig>

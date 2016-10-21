@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProfileConfig>
+    <Server>
+        <Request>
+            <method>HTTP method used by the client. Values can be GET, POST or HEAD</method>
+            <page>Page included in the client GET request. Maligno server will ignore this</page>
+            <parameter>Parameter where the payload ID is provided to the server. Maligno server will actively use this value in order to select and send a payload</parameter>
+            <location>Location where the payload parameter will be placed in the request. Values are QUERYSTRING, COOKIE or BODY. Body can only be used with POST method</location>
+            <prefix>URL-encoded content that you want to include before the payload parameter. It is recommended to use proper URL / COOKIE / POST-BODY notation</prefix>
+            <suffix>URL-encoded content that you want to include after the payload parameter</suffix>
+        </Request>
+        <Response>
+            <protocol>HTTP protocol. Values can be HTTP/1.0 or HTTP/1.1</protocol>
+            <banner>Server banner included in the response. The banner is also included in Metasploit when meterpreter over HTTP(S) is used</banner>
+            <lastresort>URL where invalid requests or hosts out of scope will be redirected to</lastresort>
+            <errortemplate>Web server error template applied to Metasploit HTTP(S) payloads</errortemplate>
+            <header>
+                <field>HTTP Header 1</field>
+                <value>Value 1</value>
+            </header>
+            <header>
+                <field>HTTP Header 2</field>
+                <value>Value 2</value>
+            </header>
+            <prefix>Piece of data included before the actual payload</prefix>
+            <suffix>Piece of data included after the actual payload</suffix>
+        </Response>
+    </Server>
+    <Network>
+        <encoding>Encoding before transmission. Values can be base64, bin or hex</encoding>
+        <rounds>Rounds of encoding before transmission. Keep it low 1 - 5</rounds>
+        <blocksize>Block size. Must be a 16, 24 or 32</blocksize>
+        <paddingchar>Character chosen for padding before encrypting with AES</paddingchar>
+        <secret>32 bytes key for encrypting with AES. Choose something unique</secret>
+        <getcaught>Number of HTTP(S) requests sent by the client before injecting the payload into memory. This should generate more traffic, and therefore higher chances for getting caught. Value is an integer equals to or greater than zero</getcaught>
+        <reqdelay>Amount of seconds that the client will wait before sending a request to Maligno server. Useful for throttling your requests when using "get caught" mode. Value equals or greater than zero</reqdelay>
+    </Network>
+    <Client>
+        <maxnaptime>Max amount of seconds that the client will sleep before activating its functionality. The client will pick a random delay between zero and maxnaptime. This can help bypassing sandboxes. Value equals to or greater than zero</maxnaptime>
+        <header>
+            <field>Client Header 1</field>
+            <value>Value 1</value>
+        </header>
+        <header>
+            <field>Client Header 2</field>
+            <value>Value 2</value>
+        </header>
+    </Client>
+</ProfileConfig>

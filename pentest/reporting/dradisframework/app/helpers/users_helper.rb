@@ -1,0 +1,2 @@
+module UsersHelper # :nodoc:
+end

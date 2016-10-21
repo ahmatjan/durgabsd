@@ -1,0 +1,8 @@
+lib r_tcc :
+    libtcc.c
+    tccgen.c
+    tccpp.c
+:
+    <include>../../libr/include
+    <cflags>-fPIC
+;

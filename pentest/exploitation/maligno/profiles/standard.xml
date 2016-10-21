@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProfileConfig>
+    <Server>
+        <Request>
+            <method>GET</method>
+            <page>index.aspx</page>
+            <parameter>id</parameter>
+            <location>querystring</location>
+            <prefix></prefix>
+            <suffix></suffix>
+        </Request>
+        <Response>
+            <protocol>HTTP/1.0</protocol>
+            <banner>Microsoft-IIS/7.5</banner>
+            <lastresort>http://www.google.com</lastresort>
+            <errortemplate>./errortemplates/iis_7.html</errortemplate>
+            <header>
+                <field>Cache-Control</field>
+                <value>no-cache</value>
+            </header>
+            <header>
+                <field>Content-type</field>
+                <value>text/html</value>
+            </header>
+            <header>
+                <field>Pragma</field>
+                <value>no-cache</value>
+            </header>
+            <header>
+                <field>X-Powered-By</field>
+                <value>ASP.NET</value>
+            </header>
+            <prefix></prefix>
+            <suffix></suffix>
+        </Response>
+    </Server>
+    <Network>
+        <encoding>base64</encoding>
+        <rounds>1</rounds>
+        <blocksize>32</blocksize>
+        <paddingchar>!</paddingchar>
+        <secret>cedbd5af520bdab20c3b79d521d8b1c8</secret>
+        <getcaught>0</getcaught>
+        <reqdelay>0</reqdelay>
+    </Network>
+    <Client>
+        <maxnaptime>0</maxnaptime>
+        <header>
+            <field>Accept</field>
+            <value>text/html, application/xhtml+xml, */*</value>
+        </header>
+        <header>
+            <field>Accept-Language</field>
+            <value>en-US</value>
+        </header>
+        <header>
+            <field>Accept-Encoding</field>
+            <value>gzip, deflate</value>
+        </header>
+        <header>
+            <field>User-Agent</field>
+            <value>Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko</value>
+        </header>
+        <header>
+            <field>Host</field>
+            <value>yourhost.com</value>
+        </header>
+    </Client>
+</ProfileConfig>

@@ -1,0 +1,61 @@
+#!/bin/sh
+# The IKE Scanner (ike-scan) is Copyright (C) 2003-2007 Roy Hills,
+# NTA Monitor Ltd.
+#
+# This file is part of ike-scan.
+#
+# ike-scan is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ike-scan is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ike-scan.  If not, see <http://www.gnu.org/licenses/>.
+#
+# check-psk-crack-1 -- Shell script to test psk-crack --help and --version
+#
+# Author: Roy Hills
+# Date: 19 November 2004
+#
+# This shell script checks that "psk-crack --help" and "psk-crack --version"
+# work.  These options don't use much of the psk-scan functionallity, so if
+# they fail, then there is a fundimental problem with the program.
+#
+TMPFILE=/tmp/ike-scan-test.$$.tmp
+#
+echo "Checking psk-crack --help ..."
+$srcdir/psk-crack --help 2> $TMPFILE
+if test $? -ne 0; then
+   rm -f $TMPFILE
+   echo "FAILED"
+   exit 1
+fi
+grep '^See the ike-scan homepage at ' $TMPFILE >/dev/null
+if test $? -ne 0; then
+   rm -f $TMPFILE
+   echo "FAILED"
+   exit 1
+fi
+echo "ok"
+#
+echo "Checking psk-crack --version ..."
+$srcdir/psk-crack --version 2> $TMPFILE
+if test $? -ne 0; then
+   rm -f $TMPFILE
+   echo "FAILED"
+   exit 1
+fi
+grep '^ike-scan comes with NO WARRANTY ' $TMPFILE >/dev/null
+if test $? -ne 0; then
+   rm -f $TMPFILE
+   echo "FAILED"
+   exit 1
+fi
+echo "ok"
+#
+rm -f $TMPFILE

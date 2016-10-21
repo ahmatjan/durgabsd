@@ -1,0 +1,283 @@
+<body text="#000000" link="#0000ff" bgcolor="#ffffff"><center><table width="80%">
+<tr><td><h1>omp</h1>
+<h2>OMP command line client for the Open Vulnerability Assessment System (OpenVAS)</h2>
+
+
+  <h2>Synopsis</h2>
+<b>
+    omp OPTIONS<br>
+
+  </b>
+
+
+  <h2>Description</h2>
+
+    <p>
+      Together, OpenVAS Scanner (openvassd(8)) and OpenVAS Manager
+      (openvasmd(8)) provide the core functionality of the Open
+      Vulnerability Assessment System (OpenVAS), with OpenVAS Scanner
+      handling the actual scan process and OpenVAS Manager adding
+      various management functionalities to handle and organise scan
+      results.
+    </p>
+
+    <p>
+      The omp binary is a command line client which uses the OMP
+      protocol to connect to the OpenVAS Manager and makes it easy to
+      access the full functionality provided by the OpenVAS Manager
+      conveniently from the command line and allows quick integration
+      in a scripted environment.
+    </p>
+
+  
+
+
+  <h2>Options</h2>
+
+    
+      <p><b>-h, --host=<em>HOST</em></b></p>
+      <p>Connect to OpenVAS Manager on host HOST.</p>
+    
+
+    
+      <p><b>-p, --port=<em>PORT</em></b></p>
+      <p>Connect to OpenVAS Manager on port PORT.</p>
+    
+
+    
+      <p><b>-u, --username=<em>USER</em></b></p>
+      
+        <p>Use the username USER to access the OpenVAS Manager.</p>
+      
+    
+
+    
+      <p><b>-w, --password=<em>PASSWORD</em></b></p>
+      
+        <p>
+          Use the password PASSWORD to access the OpenVAS Manager. If
+          the password is not set as parameter, it will be requested
+          interactively.
+        </p>
+      
+    
+
+    
+      <p><b>--config-file=<em>FILE</em></b></p>
+      
+        <p>
+          Use the information provided in FILE as parameters for the
+          connection to the OpenVAS Manager.
+        </p>
+      
+    
+
+    
+      <p><b>--send-file=<em>FILE</em></b></p>
+      
+        <p>
+          Replace SENDFILE in xml string to send with base64 encoded content of FILE.
+          Only the first occurence is replaced.
+        </p>
+      
+    
+
+    
+      <p><b>-P, --prompt</b></p>
+      
+        <p>Prompt to exit.</p>
+      
+    
+
+    
+      <p><b>-O, --get-omp-version</b></p>
+      
+        <p>Display the OMP version used by OpenVAS Manager.</p>
+      
+    
+
+    
+      <p><b>-C, --create-task</b></p>
+      
+        <p>Create a task.</p>
+      
+    
+
+    
+      <p><b>-n, --name=<em>NAME</em></b></p>
+      
+        <p>Use NAME as the name for the newly created task.</p>
+      
+    
+
+    
+      <p><b>-c, --comment=<em>COMMENT</em></b></p>
+      
+        <p>Use COMMENT as the comment for the newly created task.</p>
+      
+    
+
+    
+      <p><b>-t, --target=<em>TARGET</em></b></p>
+      
+        <p>Use TARGET as the target for the newly created task.</p>
+      
+    
+
+    
+      <p><b>--file</b></p>
+      
+        <p>Add text in stdin as file on task..</p>
+      
+    
+
+    
+      <p><b>-E, --delete-report</b></p>
+      
+        <p>Delete one or more reports.</p>
+      
+    
+
+    
+      <p><b>-D, --delete-task</b></p>
+      
+        <p>Delete one or more tasks.</p>
+      
+    
+
+    
+      <p><b>-R, --get-report</b></p>
+      
+        <p>Get report of one task.</p>
+      
+    
+
+    
+      <p><b>-F, --get-report-formats</b></p>
+      
+        <p>Get report formats (OMP 2.0 only).</p>
+      
+    
+
+    
+      <p><b>-f, --format=<em>FORMAT</em></b></p>
+      
+        <p>Get report in format FORMAT.</p>
+      
+    
+
+    
+      <p><b>-G, --get-tasks</b></p>
+      
+        <p>Get status of one, many or all tasks.</p>
+      
+    
+
+    
+      <p><b>-g, --get-configs</b></p>
+      
+        <p>Get configs.</p>
+      
+    
+
+    
+      <p><b>-T, --get-targets</b></p>
+      
+        <p>Get targets.</p>
+      
+    
+
+    
+      <p><b>-M, --modify-task</b></p>
+      
+        <p>Modify a task.</p>
+      
+    
+
+    
+      <p><b>-S, --start-task</b></p>
+      
+        <p>Start one or more tasks.</p>
+      
+    
+
+    
+      <p><b>-X, --xml=<em>COMMAND</em></b></p>
+      
+        <p>
+          Send COMMAND as XML to the OpenVAS Manager (e.g. &quot;&lt;help/&gt;&quot;,
+          &quot;&lt;get_version/&gt;&quot;).
+        </p>
+      
+    
+
+    
+      <p><b>-i, --pretty-print</b></p>
+      
+        <p>In combination with -X, pretty print the response.</p>
+      
+    
+
+    
+      <p><b>-v, --version</b></p>
+      
+        <p>Print version.</p>
+      
+    
+
+    
+      <p><b>-?, --help</b></p>
+      
+        <p>Show help.</p>
+      
+    
+  
+
+  <h2>EXAMPLES</h2>
+
+    <p>omp --username foobar --get-tasks</p>
+    <p>
+      Connect to the OpenVAS Manager as user foobar and get the list
+      of tasks.
+    </p>
+  
+
+
+  <h2>SEE ALSO</h2>
+
+    <p>
+      <b>openvassd (8)</b>
+      <b>openvasad (8)</b>
+      <b>gsad (8)</b>
+      <b>openvasmd (8)</b>
+      <b>gsd (8)</b>
+    </p>
+  
+
+
+  <h2>MORE INFORMATION ABOUT THE OpenVAS PROJECT</h2>
+
+    <p>
+      The canonical places where you will find more information
+      about the OpenVAS project are:
+
+      <a href = "http://www.openvas.org/">http://www.openvas.org/</a>
+      (Official site)
+
+      <a href = "http://wald.intevation.org/projects/openvas/">http://wald.intevation.org/projects/openvas/</a>
+      (Development Platform)
+    </p>
+  
+
+
+  <h2>COPYRIGHT</h2>
+
+    <p>
+      The omp command line client is released under the GNU GPL,
+      version 2, or, at your option, any later version.
+    </p>
+  
+
+
+</td></tr></table></center>
+</body>

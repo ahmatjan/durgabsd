@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProfileConfig>
+    <Server>
+        <Request>
+            <method>GET</method>
+            <page>tdfpmmn/hnkppz.php</page>
+            <parameter>a</parameter>
+            <location>querystring</location>
+            <prefix>adv=adv516</prefix>
+            <suffix></suffix>
+        </Request>
+        <Response>
+            <protocol>HTTP/1.1</protocol>
+            <banner>nginx/0.7.64</banner>
+            <lastresort>http://www.google.com</lastresort>
+            <errortemplate>./errortemplates/nginx.html</errortemplate>
+            <header>
+                <field>Content-type</field>
+                <value>text/html</value>
+            </header>
+            <header>
+                <field>Connection</field>
+                <value>Close</value>
+            </header>
+            <prefix></prefix>
+            <suffix></suffix>
+        </Response>
+    </Server>
+    <Network>
+        <encoding>bin</encoding>
+        <rounds>1</rounds>
+        <blocksize>32</blocksize>
+        <paddingchar>!</paddingchar>
+        <secret>cedbd5af520bdab20c3b79d521d8b1c8</secret>
+        <getcaught>0</getcaught>
+        <reqdelay>0</reqdelay>
+    </Network>
+    <Client>
+        <maxnaptime>0</maxnaptime>
+        <header>
+            <field>User-Agent</field>
+            <value>Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)ver49</value>
+        </header>
+        <header>
+            <field>Host</field>
+            <value>agrofee.com</value>
+        </header>
+    </Client>
+</ProfileConfig>

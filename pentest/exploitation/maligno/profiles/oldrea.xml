@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProfileConfig>
+    <Server>
+        <Request>
+            <method>POST</method>
+            <page>/wp08/wp-includes/dtcla.php</page>
+            <parameter>id</parameter>
+            <location>querystring</location>
+            <prefix></prefix>
+            <suffix>v1%3D038%26v2%3D170393861%26q%3D5265882854508EFCF958F979E4</suffix>
+        </Request>
+        <Response>
+            <protocol>HTTP/1.1</protocol>
+            <banner>Apache/1.3.37 (Unix)</banner>
+            <lastresort>http://www.google.com</lastresort>
+            <errortemplate>./errortemplates/apache.html</errortemplate>
+            <header>
+                <field>Content-Type</field>
+                <value>text/html</value>
+            </header>
+            <header>
+                <field>Transfer-Encoding</field>
+                <value>chunked</value>
+            </header>
+            <header>
+                <field>Connection</field>
+                <value>keep-alive</value>
+            </header>
+            <header>
+                <field>Cache-Control</field>
+                <value>no-cache</value>
+            </header>
+            <prefix>9f65%3Chtml%3E%3Chead%3E%3Cmega%20http-equiv%3D%27CACHE-CONTROL%27content%3D%27NO-CACHE%27%3E%3C%2fhead%3E%3Cbody%3ENo%20data%21%3C%21--havexQlpoOTFBWSZTW%20WYvDI0BOsD%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f%2f4oB%2b93V%20V%20Xu69DuN7XYzds9y%20t49Ques</prefix>
+            <suffix>%2byUW3zfTxWAOstsCwCckdW5%20AH5Q6vbbCu7GputPt5CSfgPCAKXcAOOICMsqliACGYEhAQT3v9eDM92D%2f8XckU4UJBmLwyNA%3D%3Dhavex--%3E%3C%2fbody%3E%3C%2fhead%3E</suffix>
+        </Response>
+    </Server>
+    <Network>
+        <encoding>base64</encoding>
+        <rounds>1</rounds>
+        <blocksize>32</blocksize>
+        <paddingchar>!</paddingchar>
+        <secret>cedbd5af520bdab20c3b79d521d8b1c8</secret>
+        <getcaught>0</getcaught>
+        <reqdelay>0</reqdelay>
+    </Network>
+    <Client>
+        <maxnaptime>0</maxnaptime>
+        <header>
+            <field>User-Agent</field>
+            <value>Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/525.19 (KHTML, like Gecko) Chrome/1.0.154.36 Safari/525.19</value>
+        </header>
+        <header>
+            <field>Host</field>
+            <value>toons.freesexycomics.com</value>
+        </header>
+        <header>
+            <field>Content-Length</field>
+            <value>0</value>
+        </header>
+        <header>
+            <field>Cache-Control</field>
+            <value>no-cache</value>
+        </header>
+    </Client>
+</ProfileConfig>

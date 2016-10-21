@@ -1,0 +1,102 @@
+.TH omp 8 User Manuals
+.SH NAME
+omp \- OMP command line client for the Open Vulnerability Assessment System (OpenVAS)
+.SH SYNOPSIS
+\fBomp OPTIONS
+\f1
+.SH DESCRIPTION
+Together, OpenVAS Scanner (openvassd(8)) and OpenVAS Manager (openvasmd(8)) provide the core functionality of the Open Vulnerability Assessment System (OpenVAS), with OpenVAS Scanner handling the actual scan process and OpenVAS Manager adding various management functionalities to handle and organise scan results. 
+
+The omp binary is a command line client which uses the OMP protocol to connect to the OpenVAS Manager and makes it easy to access the full functionality provided by the OpenVAS Manager conveniently from the command line and allows quick integration in a scripted environment. 
+.SH OPTIONS
+.TP
+\fB-h, --host=\fIHOST\fB\f1
+Connect to OpenVAS Manager on host HOST.
+.TP
+\fB-p, --port=\fIPORT\fB\f1
+Connect to OpenVAS Manager on port PORT.
+.TP
+\fB-u, --username=\fIUSER\fB\f1
+Use the username USER to access the OpenVAS Manager.
+.TP
+\fB-w, --password=\fIPASSWORD\fB\f1
+Use the password PASSWORD to access the OpenVAS Manager. If the password is not set as parameter, it will be requested interactively. 
+.TP
+\fB--config-file=\fIFILE\fB\f1
+Use the information provided in FILE as parameters for the connection to the OpenVAS Manager. 
+.TP
+\fB--send-file=\fIFILE\fB\f1
+Replace SENDFILE in xml string to send with base64 encoded content of FILE. Only the first occurence is replaced. 
+.TP
+\fB-P, --prompt\f1
+Prompt to exit.
+.TP
+\fB-O, --get-omp-version\f1
+Display the OMP version used by OpenVAS Manager.
+.TP
+\fB-C, --create-task\f1
+Create a task.
+.TP
+\fB-n, --name=\fINAME\fB\f1
+Use NAME as the name for the newly created task.
+.TP
+\fB-c, --comment=\fICOMMENT\fB\f1
+Use COMMENT as the comment for the newly created task.
+.TP
+\fB-t, --target=\fITARGET\fB\f1
+Use TARGET as the target for the newly created task.
+.TP
+\fB--file\f1
+Add text in stdin as file on task..
+.TP
+\fB-E, --delete-report\f1
+Delete one or more reports.
+.TP
+\fB-D, --delete-task\f1
+Delete one or more tasks.
+.TP
+\fB-R, --get-report\f1
+Get report of one task.
+.TP
+\fB-F, --get-report-formats\f1
+Get report formats (OMP 2.0 only).
+.TP
+\fB-f, --format=\fIFORMAT\fB\f1
+Get report in format FORMAT.
+.TP
+\fB-G, --get-tasks\f1
+Get status of one, many or all tasks.
+.TP
+\fB-g, --get-configs\f1
+Get configs.
+.TP
+\fB-T, --get-targets\f1
+Get targets.
+.TP
+\fB-M, --modify-task\f1
+Modify a task.
+.TP
+\fB-S, --start-task\f1
+Start one or more tasks.
+.TP
+\fB-X, --xml=\fICOMMAND\fB\f1
+Send COMMAND as XML to the OpenVAS Manager (e.g. "<help/>", "<get_version/>"). 
+.TP
+\fB-i, --pretty-print\f1
+In combination with -X, pretty print the response.
+.TP
+\fB-v, --version\f1
+Print version.
+.TP
+\fB-?, --help\f1
+Show help.
+.SH EXAMPLES
+omp --username foobar --get-tasks
+
+Connect to the OpenVAS Manager as user foobar and get the list of tasks. 
+.SH SEE ALSO
+\fBopenvassd(8)\f1 \fBopenvasad(8)\f1 \fBgsad(8)\f1 \fBopenvasmd(8)\f1 \fBgsd(8)\f1
+.SH MORE INFORMATION ABOUT THE OPENVAS PROJECT
+The canonical places where you will find more information about the OpenVAS project are: \fBhttp://www.openvas.org/\f1 (Official site) \fBhttp://wald.intevation.org/projects/openvas/\f1 (Development Platform) 
+.SH COPYRIGHT
+The omp command line client is released under the GNU GPL, version 2, or, at your option, any later version. 

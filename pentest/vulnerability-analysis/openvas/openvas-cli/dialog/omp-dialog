@@ -1,0 +1,667 @@
+#!/bin/bash
+# Description: Ncurses based client tool for OMP
+#
+# Authors:
+# Andre Heinecke <aheinecke@intevation.de>
+#
+# Copyright:
+# Copyright (C) 2012 Greenbone Networks GmbH
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+VERSION=0.1.0
+DEBUG=0 # Writes debug output to omp-client.log
+
+# Static strings
+MAIN_TITLE="OMP Dialog Client - $VERSION -- "
+LOGIN_TITLE="Please enter your login credentials"
+
+# Default settings
+DEFAULT_HOST=localhost
+DEFAULT_PORT=9390
+DEFAULT_USER=
+DEFAULT_PASS=
+
+# Configuration file tried to load on startup
+SAVED_CONFIG=~/omp.config
+
+####################
+# Helper functions #
+####################
+
+logout() {
+  USERNAME=""
+  PASSWORD=""
+  HOST=""
+  PORT=""
+  LOGGED_IN=""
+  OMP_COMMAND=""
+  SERVER_VERSION=""
+  SELECTED_TASK=""
+  SELECTED_TASK_NAME=""
+  LOGGED_OUT="TRUE"
+}
+
+# Write some debug output without modifying $?
+debug() {
+  retval=$?
+  if [ $DEBUG -eq 1 ]; then
+    echo "$@" >> omp-dialog.log
+  fi
+  return $retval
+}
+
+omp_call() {
+  omp --config-file "$CONF_FILE" "$@"
+}
+
+error_msg() {
+  dialog --title "Error" --clear --msgbox "$1" 10 41
+}
+
+cleanup() {
+  /bin/rm -f "$tmpfile4" "$tmpfile2" "$tmpfile3" "$tmpfile1" "$CONF_FILE"
+}
+
+# Load configfile
+load_configfile() {
+  if [ -e "$1" -o -L "$1" ]; then
+    DEFAULT_HOST=$(sed -n 's/^host=\(.*\)/\1/p' "$1")
+    DEFAULT_PORT=$(sed -n 's/^port=\(.*\)/\1/p' "$1")
+    DEFAULT_USER=$(sed -n 's/^username=\(.*\)/\1/p' "$1")
+    DEFAULT_PASS=$(sed -n 's/^password=\(.*\)/\1/p' "$1")
+    debug "Loaded configfile.\n$DEFAULT_HOST\n$DEFAULT_PORT\n\
+                             \n$DEFAULT_USER"
+    if [ ! -z "$DEFAULT_PASS" ]; then
+      debug "Password also given"
+    fi
+  fi
+}
+
+# Leave menu:
+# Called when the client exits
+leave_menu() {
+  /usr/bin/clear
+  exit
+}
+
+# Check if all tools are available and give useful errors otherwise
+setup_check() {
+  dialog > /dev/null 2>&1
+  if [ $? -gt 0 ]; then
+    echo Error: dialog not installed.
+    echo Please install the software \"dialog\" on your System.
+    exit
+  fi
+  omp > /dev/null 2>&1
+  if [ ! $? -eq 1 ]; then
+    echo Error: OMP not installed.
+    echo Please install the software \"omp\" on your System.
+    exit
+  fi
+}
+
+#################################################
+# XSL Templates used                            #
+#################################################
+
+# Task list simple uid->name mapping
+# Parameter is the file to write to
+write_tl_uidname(){
+  cat > "$1" << "EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="text" encoding="UTF-8"/>
+  <xsl:template match="/">
+    <xsl:apply-templates select="/get_tasks_response/task"/>
+  </xsl:template>
+  <xsl:template match="/get_tasks_response/task">
+    <xsl:value-of select="./@id"/>
+    <xsl:text> </xsl:text>
+    <xsl:value-of select="status"/>
+    <xsl:text> | </xsl:text>
+    <xsl:value-of select="name"/>
+    <xsl:text>
+</xsl:text>
+  </xsl:template>
+</xsl:stylesheet>
+EOF
+}
+
+# Pretty txt output of tasks details
+write_tl_details_pretty(){
+  cat > "$1" << "EOF"
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="text" encoding="UTF-8"/>
+  <xsl:template match="/">
+    <xsl:apply-templates select="/get_tasks_response/task"/>
+  </xsl:template>
+
+  <xsl:template name="padMe">
+    <xsl:param name="padTo"/>
+    <xsl:param name="i"/>
+    <xsl:text> </xsl:text>
+    <xsl:if test="$padTo &gt; $i">
+      <xsl:call-template name="padMe">
+         <xsl:with-param name="padTo"><xsl:value-of select="$padTo"/></xsl:with-param>
+         <xsl:with-param name="i"><xsl:value-of select="$i + 1"/></xsl:with-param>
+       </xsl:call-template>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template match="/get_tasks_response/task">
+
+
+    <xsl:text>Name: </xsl:text>
+    <xsl:value-of select="name"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Configuration: </xsl:text>
+    <xsl:value-of select="config/name"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Target: </xsl:text>
+    <xsl:value-of select="target/name"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Status: </xsl:text>
+    <xsl:value-of select="status"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Times finshed: </xsl:text>
+    <xsl:value-of select="report_count/finished"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Trend: </xsl:text>
+    <xsl:value-of select="trend"/>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Overrides used: </xsl:text>
+    <xsl:choose>
+      <xsl:when test="apply-overrides &gt; 0">
+        <xsl:text>Yes</xsl:text>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:text>No</xsl:text>
+      </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:text>Next scheduled run: </xsl:text>
+    <xsl:choose>
+      <xsl:when test="schedule/next_time='over'">
+        <xsl:text>never</xsl:text>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:value-of select="schedule/next_time"/>
+      </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>
+</xsl:text>
+      <xsl:if test="string-length(escalator/name) &gt; 0">
+        <xsl:text>Escalator: </xsl:text>
+        <xsl:value-of select="escalator/name"/>
+    <xsl:text>
+</xsl:text>
+      </xsl:if>
+    <xsl:text>Owner: </xsl:text>
+    <xsl:value-of select="owner/name"/>
+    <xsl:text>
+</xsl:text>
+    <xsl:text>Preferences: </xsl:text>
+    <xsl:text>
+</xsl:text>
+
+    <xsl:for-each select="preferences/preference">
+      <xsl:text>  </xsl:text>
+      <xsl:value-of select="name"/>
+      <xsl:text>: </xsl:text>
+      <xsl:value-of select="value"/>
+      <xsl:text>
+</xsl:text>
+    </xsl:for-each>
+
+    <xsl:text>
+</xsl:text>
+
+  <xsl:text>Reports: </xsl:text>
+  <xsl:text>
+Date/Time                  Hole      Warning   Info      Log
+___________________________________________________________________
+</xsl:text>
+
+<xsl:for-each select="reports/report">
+        <xsl:value-of select="timestamp"/>
+        <xsl:call-template name="padMe">
+          <xsl:with-param name="padTo" select="26"/>
+          <xsl:with-param name="i" select="string-length(timestamp)"/>
+        </xsl:call-template>
+        <xsl:value-of select="result_count/hole"/>
+        <xsl:call-template name="padMe">
+          <xsl:with-param name="padTo" select="9"/>
+          <xsl:with-param name="i" select="string-length(result_count/hole)"/>
+        </xsl:call-template>
+        <xsl:value-of select="result_count/warning"/>
+        <xsl:call-template name="padMe">
+          <xsl:with-param name="padTo" select="9"/>
+          <xsl:with-param name="i" select="string-length(result_count/warning)"/>
+        </xsl:call-template>
+        <xsl:value-of select="result_count/info"/>
+        <xsl:call-template name="padMe">
+          <xsl:with-param name="padTo" select="9"/>
+          <xsl:with-param name="i" select="string-length(result_count/info)"/>
+        </xsl:call-template>
+        <xsl:value-of select="result_count/log"/>
+        <xsl:call-template name="padMe">
+          <xsl:with-param name="padTo" select="9"/>
+          <xsl:with-param name="i" select="string-length(result_count/log)"/>
+        </xsl:call-template>
+      <xsl:text>
+</xsl:text>
+    </xsl:for-each>
+    </xsl:template>
+</xsl:stylesheet>
+EOF
+}
+
+
+####################
+# Dialogs / Menus #
+####################
+
+# Generic Task actions
+
+#Task select dialog
+#Sets the variable SELECTED_TASK to the uuid of the task
+tasks_select_dialog() {
+
+  SELECTED_TASK=""
+  SELECTED_TASK_NAME=""
+  dialog \
+    --backtitle "$MAIN_TITLE Task Management" \
+    --infobox "Obtaining Task List, please wait" 3 40
+  # Get the raw task list
+  omp_call -X "<get_tasks sort_field=\"name\" details=\"false\"/>" > "$tmpfile2"
+
+  write_tl_uidname "$tmpfile3"
+
+  xsltproc "$tmpfile3" "$tmpfile2" > "$tmpfile4"
+
+  taskEntries=("")
+  c=0
+  lineNo=0
+  while read line; do
+    c=`expr $c + 1`
+    lineNo=`expr $lineNo + 1`
+    taskName=$(echo $line | awk '{ for(i=2; i<=NF; i++) {printf("%s ", $i)} } ')
+    taskEntries[$c]="$lineNo"
+    c=`expr $c + 1`
+    taskEntries[$c]="$taskName"
+  done < "$tmpfile4"
+
+  IFS=$'\n'
+  dialog \
+    --clear \
+    --cancel-label "Back" \
+    --backtitle "$MAIN_TITLE Task Management" \
+    --title "Select Task" \
+    --menu "" 0 0 0 \
+    ${taskEntries[*]} 2> "$tmpfile1"
+
+  if [ ${?} -ne 0 ]; then
+    return; fi
+
+  unset IFS
+
+  choice=`/bin/cat "$tmpfile1"`
+
+  SELECTED_TASK=$(sed -n ${choice}p "$tmpfile4" | awk '{print $1}')
+  SELECTED_TASK_NAME=$(sed -n ${choice}p "$tmpfile4" | \
+      awk '{ for(i=4; i<=NF; i++) {printf("%s ", $i)} }')
+}
+
+selected_task_details()
+{
+  if [ -z "$SELECTED_TASK" ]; then
+    return
+  fi
+
+  dialog \
+    --backtitle "$MAIN_TITLE Task Management" \
+    --infobox "Transferring Details, please wait" 3 40
+  # Get the raw task list
+  omp_call -X "<get_tasks details=\"true\" task_id=\"$SELECTED_TASK\"/>" > "$tmpfile2"
+
+  # Write the transformation
+  write_tl_details_pretty "$tmpfile3"
+  xsltproc "$tmpfile3" "$tmpfile2" > "$tmpfile4"
+
+  dialog \
+    --backtitle "$MAIN_TITLE Task Management" \
+    --textbox  "$tmpfile4" 0 70
+}
+
+selected_task_start()
+{
+  if [ -z "$SELECTED_TASK" ]; then
+    return
+  fi
+  debug "starting task $SELECTED_TASK"
+  omp_call -X "<resume_or_start_task task_id=\"$SELECTED_TASK\"/>"
+  dialog \
+      --backtitle "$MAIN_TITLE Task Management" \
+      --msgbox "Starting $SELECTED_TASK_NAME" 5 70
+}
+
+selected_task_stop()
+{
+  if [ -z "$SELECTED_TASK" ]; then
+    return
+  fi
+  debug "stopping task $SELECTED_TASK"
+  omp_call -X "<stop_task task_id=\"$SELECTED_TASK\"/>"
+  dialog \
+      --backtitle "$MAIN_TITLE Task Management" \
+      --msgbox "Stopping $SELECTED_TASK_NAME" 5 70
+}
+
+tasks_menu() {
+  tasks_select_dialog
+  while [ true ]
+  do
+    if [ -z "$SELECTED_TASK" ]; then
+      return
+    fi
+
+    dialog \
+      --clear \
+      --backtitle "$MAIN_TITLE Task Management" \
+      --cancel-label "Back" \
+      --title "Select Action for $SELECTED_TASK_NAME" \
+      --menu "" 9 70 4 \
+      "Details"  "Show Details of the Task" \
+      "Start"    "Start the Task" \
+      "Stop"     "Stop the Task" \
+      2> "$tmpfile1"
+
+    if [ ${?} -ne 0 ]; then
+      tasks_select_dialog
+      continue
+    fi
+
+    choice=`/bin/cat "$tmpfile1"`
+
+    case $choice in
+      "Details")
+        selected_task_details;;
+      "Start")
+        selected_task_start;;
+      "Stop")
+        selected_task_stop;;
+    esac
+  done
+}
+
+# Obtain login credentials
+login_dialog() {
+  # Check if we have defaults and were not explicitly
+  # logged out
+  if [ -z "$DEFAULT_HOST" -o \
+       -z "$DEFAULT_PASS" -o \
+       -z "$DEFAULT_USER" -o \
+       -z "$DEFAULT_PORT" -o \
+       "$LOGGED_OUT" = "TRUE" ]; then
+    dialog \
+      --clear \
+      --ok-label "Connect" \
+      --cancel-label "Exit" \
+      --backtitle "$MAIN_TITLE Login" \
+      --title "Login" --form "Server Details" 9 70 3 \
+          "Host: "     1 1 "$DEFAULT_HOST" 1 13 20 0 \
+          "Port: "     2 1 "$DEFAULT_PORT" 2 13 5  0 \
+          "Username: " 3 1 "$DEFAULT_USER" 3 13 20 0 \
+        2> "$tmpfile1"
+
+    if [ ${?} -ne 0 ]; then
+      leave_menu; fi
+
+    lineNo=0
+    while read line; do
+      lineNo=`expr $lineNo + 1`
+      case $lineNo in
+        1)
+          HOST=$line ;;
+        2)
+          PORT=$line ;;
+        3)
+          USERNAME=$line ;;
+      esac
+    done < "$tmpfile1"
+    dialog --title "Password" \
+           --clear \
+           --insecure \
+           --passwordbox "Enter your password" 10 30 2>"$tmpfile1"
+    if [ ${?} -ne 0 ]; then
+      return; fi
+    PASSWORD=`/bin/cat "$tmpfile1"`
+  else
+     HOST="$DEFAULT_HOST"
+     PORT="$DEFAULT_PORT"
+     PASSWORD="$DEFAULT_PASS"
+     USERNAME="$DEFAULT_USER"
+  fi
+
+  echo "[Connection]" > "$CONF_FILE"
+  echo "host=$HOST" >> "$CONF_FILE"
+  echo "port=$PORT" >> "$CONF_FILE"
+  echo "username=$USERNAME" >> "$CONF_FILE"
+  echo "password=$PASSWORD" >> "$CONF_FILE"
+
+  # Lets try those credentials
+  SERVER_VERSION=$(omp_call -X "<get_version/>" | xmlstarlet sel -t -v \
+      /get_version_response/version 2>/dev/null)
+  debug "Response: $SERVER_VERSION"
+  if [ ! -z $SERVER_VERSION ]; then
+    debug "Logged in"
+    LOGGED_IN="TRUE"
+  else
+    ERROR=$(omp_call -X "<get_version/>" 2>&1)
+    LOGGED_OUT="TRUE"
+    error_msg "$ERROR"
+    return
+  fi
+}
+
+save_config_menu(){
+while true ; do
+  dialog \
+    --clear \
+    --ok-label "Save" \
+    --cancel-label "Back" \
+    --backtitle "$MAIN_TITLE Save Configuration" \
+    --title "Please enter a file name" \
+    --fselect $HOME/omp.config 0 70 \
+      2> "$tmpfile1"
+  if [ ${?} -ne 0 ]; then
+    return; fi
+
+  SELECTED_FILE=`/bin/cat "$tmpfile1"`
+
+  if [ -e "$SELECTED_FILE" ]; then
+    dialog \
+      --backtitle "$MAIN_TITLE Save Configuration" \
+      --title "File already exists."\
+      --clear \
+      --yesno "Do you want to overwrite\n\"$SELECTED_FILE\"?" 7 70
+    if [ ${?} -ne 0 ]; then
+       continue
+    fi;
+  fi;
+  echo "[Connection]" > "$SELECTED_FILE"
+  echo "host=$HOST" >> "$SELECTED_FILE"
+  echo "port=$PORT" >> "$SELECTED_FILE"
+  echo "username=$USERNAME" >> "$SELECTED_FILE"
+
+  dialog \
+    --backtitle "$MAIN_TITLE Save Configuration" \
+    --title "Save Password" \
+    --clear \
+    --yesno "Do you also wish to save your password?" 7 70
+  if [ ${?} -eq 0 ]; then
+    echo "password=$PASSWORD" >> "$SELECTED_FILE"
+  fi;
+  return
+done
+}
+
+# Options taken from omp-cli
+
+usage(){
+    cat << EOF
+
+usage: $0 options
+
+Dialog based Task Management for OpenVAS
+
+OPTIONS:
+   -d, --debug                     Write Debug output to ./`basename $0`.log
+   -?, --help                      Show this message
+   -c, --configfile=~/omp.config   Load connection configuration from file
+   -u, --username=<username>       OMP username
+   -w, --password=<password>       OMP password
+   -h, --host=<host>               Connect to manager on host <host>
+   -p, --port=<number>             Use port number <number>
+
+
+CONFIGURATION:
+The configuration file ~/omp.config can be used to store connection parameter
+like host, port, username and password. Alternatively, the connection
+parameter can be passed with the respective options (e.g. --username, see
+above) or read from a file specified with the --configfile option.
+
+An exemplary configuration file looks like:
+
+[Connection]
+host=localhost
+port=9390
+username=exampleuser
+password=examplepassword
+EOF
+exit 0
+}
+
+########
+# Main #
+########
+# Execution should start here
+
+setup_check # Check that we can work
+if [ $DEBUG = 1 ]; then
+  echo -n "OMP-Dialog started at: " > omp-dialog.log
+  date -R >> omp-dialog.log
+fi
+
+tmpfile1=`mktemp 2>/dev/null`
+tmpfile2=`mktemp 2>/dev/null`
+tmpfile3=`mktemp 2>/dev/null`
+tmpfile4=`mktemp 2>/dev/null`
+CONF_FILE=`mktemp 2>/dev/null`
+trap "cleanup" 0 1 2 5 15
+
+# Try to load config
+load_configfile "$SAVED_CONFIG"
+
+# Parse Commandline (Overrides configfile)
+OPTS=`getopt -o ?dc:u:w:h:p: \
+     -l help,debug,configfile:,username:,password:,host:,port: \
+     -n $0 -- "$@"`
+if [ $? != 0 ] ; then usage; fi
+eval set -- "$OPTS"
+
+while true ; do
+  case "$1" in
+    "-?"|"--help")
+      usage;;
+    "-d"|"--debug")
+      DEBUG=1
+      shift;;
+    "--")
+      shift
+      break;;
+    "-c"|"--configfile")
+      if [ -e "$2" -o -L "$2" ]; then
+        SAVED_CONFIG="$2"
+        load_configfile "$SAVED_CONFIG"
+      else
+        echo "No such file $2"
+        exit 1
+      fi
+      shift 2;;
+    "-u"|"--username")
+      DEFAULT_USER=$2
+      shift 2;;
+    "-w"|"--password")
+      DEFAULT_PASS=$2
+      shift 2;;
+    "-h"|"--host")
+      DEFAULT_HOST=$2
+      shift 2;;
+    "-p"|"--port")
+      DEFAULT_PORT=$2
+      shift 2;;
+    *)
+      echo "Unknown Option $1"
+      usage;;
+  esac
+done
+
+debug "Temp files: $tmpfile1 $tmpfile2 $tmpfile3 $tmpfile4"
+
+# Main loop of the script
+while [ true ]
+do
+  if [ -z $LOGGED_IN ]; then
+    login_dialog
+  else
+    dialog --clear --cancel-label "Exit" --backtitle "$MAIN_TITLE Main Menu" \
+          --menu "Connected to: $HOST OMP Version: $SERVER_VERSION" 10 70 4 \
+      "Tasks"       "Task Management" \
+      "Logout"      "Disconnect from the Server"\
+      "Save Config" "Save connection configuration to file"\
+      2> "$tmpfile1"
+  fi
+
+  if [ ${?} -ne 0 ]; then
+    leave_menu; fi
+  choice=`/bin/cat "$tmpfile1"`
+
+  case $choice in
+    "Tasks")
+      tasks_menu ;;
+    "Logout")
+      logout ;;
+    "Save Config")
+      save_config_menu ;;
+  esac
+done
+

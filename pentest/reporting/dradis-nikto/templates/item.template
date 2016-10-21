@@ -1,0 +1,10 @@
+#[Title]#
+Finding
+
+
+#[Details]#
+OSVDB: "%item.osvdbid%":%item.osvdblink%
+Request Method: %item.request_method%
+Description: %item.description%
+Link: %item.namelink%
+IP Based Link: %item.iplink%

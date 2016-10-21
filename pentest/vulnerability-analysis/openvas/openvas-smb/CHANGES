@@ -1,0 +1,55 @@
+openvas-smb 1.0.1 (2015-03-13)
+
+This is the first maintenance release of the openvas-smb module 1.0 for the Open
+Vulnerability Assessment Systems (OpenVAS).
+
+This release ensures openvas-smb builds with GnuTLS 3.0 or newer as well as
+addressing other build system issues.
+
+Many thanks to everyone who has contributed to this release:
+Benoît Allard, Andre Heinecke and Michael Wiegand.
+
+Main changes compared to 1.0.0:
+* An issue which caused a build failure when building with GnuTLS 3.0 or newer
+  has been fixed.
+* An issue which caused a build failure when building in Debian 8 ("Jessie")
+  has been fixed.
+* Public header files are now installed correctly.
+* Private symbols are now hidden.
+* Build performance has been improved.
+
+
+openvas-smb 1.0.0 (2015-02-09)
+
+This is the first release of the openvas-smb module 1.0 for the Open
+Vulnerability Assessment Systems (OpenVAS).
+
+This release adds support for NTLMv2 to win_cmd_exec and includes the WMI
+command line tool "wmic". It also removes included libraries and uses the system
+libraries in their place and contains the result of several code cleanups.
+
+Many thanks to everyone who has contributed to this release:
+Andre Heinecke.
+
+Main changes compared to 1.0+beta2:
+* Support for NTLMv2 has been added to win_cmd_exec.
+* The WMI command line tool "wmic" has been added.
+* Included heimdal libraries have been removed, openvas-smb uses the system
+  libraries now.
+* Included popt library has been removed, openvas-smb uses the system
+  library now.
+* Several clean ups to remove unused code and to improve quality in both code
+  and build environment.
+
+
+openvas-smb 1.0+beta1 (2015-01-14)
+
+This is the first release of the openvas-smb module for the Open Vulnerability
+Assessment Systems (OpenVAS).
+
+This module includes libraries to interface with Microsoft Windows Systems
+through the Windows Management Instrumentation API and a winexe binary to
+execute processes remotely on that system.
+
+Many thanks to everyone who has contributed to this release:
+Andre Heinecke, Jan-Oliver Wagner and Michael Wiegand.

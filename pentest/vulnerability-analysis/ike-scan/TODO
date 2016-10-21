@@ -1,0 +1,73 @@
+Write custom packet creation code.  This would allow an arbitrary IKE packet
+to be created and sent.  The generation rules would be some sort of
+specification file as command-line arguments are not flexible enough for this
+task.  Probably parse with yacc/lex to avoid having to write C string handling
+and pattern matching.  This would override any command-line options that
+define the packet such as --aggressive, --auth, --trans, --dhgroup Etc.
+
+Add option for XML output for easier machine readability.
+
+Decode the currently unhandled ID types: ID_IPV6_ADDR, ID_IPV6_ADDR_SUBNET,
+ID_IPV6_ADDR_RANGE, ID_DER_ASN1_DN, and ID_DER_ASN1_GN (I've never seen these
+used though).
+
+Use Token Bucket algorithm for packet transmission to allow higher output
+rates, esp. when minimum select() wait is relatively large.
+
+Allow --trans options to be specified as inclusive ranges.  This would add
+a host entry for each transform attribute in the range, which could be used
+to determine which attributes a server supports.
+
+Add an option to include all known vendor IDs to the outgoing packet.
+Suggested by Max Kosmach.  This would require a more complex structure to
+hold the vendor IDs as the current one only contains the pattern to match
+which cannot simply be used as the outgoing VendorID as it may contain
+metacharacters.
+
+Allow a variable number of packets in the UDP backoff pattern.  Some VPN
+servers will return different numbers of packets, but still have a unique
+pattern.
+
+Add support for Main Mode PSK cracking using a MitM attack.  Suggested by
+Anton Rager.
+
+Allow an id file to be specified, which would contain multiple identities
+(usernames).  Each identity would create a separate host entry, with a
+pointer to the associated ID so that it could be correctly displayed.
+
+Increase PSK cracking speed by using faster hash functions.  Possibilities
+include Jean-Luc Cooke's MD5crk MD5 cores which use SIMD instructions.
+
+Allow sending of zero values for all the various parameters.  For 1 and 2-byte
+sized parameters, this can be achieved by using int instead of unsigned and
+using -1 to represent the default rather than 0.  For 4-byte values, it
+requires a separate flag variable.  Another option is to define a struct like:
+
+struct value {
+   int flag;
+   unsigned val;
+}
+
+Add support for multiple psk-crack processes using MPI for inter-process
+communication.  This should enable psk-crack to run much faster on multi-
+core CPUs.
+
+Add support for IKE MitM attack, similar to FakeIKEd at
+http://www.roe.ch/FakeIKEd
+
+Support custom transforms for IKEv2.
+
+Display notification of NAT-T encapsulation. Currently there is no indication if a received packet is in NAT-T format with Non-ESP marker, or if it is the standard IKE format.
+
+Integrate psk-crack patch from
+http://src.telindus.com/articles/pskcrack_patch.html
+
+Add Adam Bozanich's DH key patch linked from:
+http://blog.mudynamics.com/2007/09/18/widespread-dh-implementation-weakness/
+http://blog.mudynamics.com/wp-content/uploads/2007/09/ike-scanpatch.txt
+
+Support the EC2N Diffie-Hellman groups for the --dhgroup option.
+
+Consider adding RSA_Sig as an auth method for the default transform set.
+This would result in 16 transforms with all combinations of:
+DES/3DES, MD5/SHA1, PSK/RSA, DH 1/DH 2

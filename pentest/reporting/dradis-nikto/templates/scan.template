@@ -1,0 +1,14 @@
+#[Title]#
+Nikto upload: %scan.filename%
+
+#[Details]#
+IP: %scan.targetip%
+Hostname: %scan.targethostname%
+Port: %scan.targetport%
+Banner: %scan.targetbanner%
+Starttime: %scan.starttime%
+Site Name: %scan.sitename%
+Site IP: %scan.siteip%
+Host Header: %scan.hostheader%
+Errors: %scan.errors%
+Total Checks: %scan.checks%

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProfileConfig>
+    <Server>
+        <Request>
+            <method>GET</method>
+            <page>l/v2/loginv2.asp</page>
+            <parameter>hi</parameter>
+            <location>querystring</location>
+            <prefix></prefix>
+            <suffix>x%3D.%27..%5Bxf%29.%7C.3XqHr....%29IL%7B..%26y%3D192.168.0.69</suffix>
+        </Request>
+        <Response>
+            <protocol>HTTP/1.1</protocol>
+            <banner>Microsoft-IIS/6.0</banner>
+            <lastresort>http://www.google.com</lastresort>
+            <errortemplate>./errortemplates/iis_6.html</errortemplate>
+            <header>
+                <field>Content-type</field>
+                <value>text/html</value>
+            </header>
+            <header>
+                <field>X-Powered-By</field>
+                <value>ASP.NET</value>
+            </header>
+            <prefix>GhOst</prefix>
+            <suffix></suffix>
+        </Response>
+    </Server>
+    <Network>
+        <encoding>bin</encoding>
+        <rounds>1</rounds>
+        <blocksize>32</blocksize>
+        <paddingchar>!</paddingchar>
+        <secret>cedbd5af520bdab20c3b79d521d8b1c8</secret>
+        <getcaught>0</getcaught>
+        <reqdelay>0</reqdelay>
+    </Network>
+    <Client>
+        <maxnaptime>0</maxnaptime>
+        <header>
+            <field>User-Agent</field>
+            <value>Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727; InfoPath.1)</value>
+        </header>
+        <header>
+            <field>Host</field>
+            <value>www.palms-us.org</value>
+        </header>
+    </Client>
+</ProfileConfig>

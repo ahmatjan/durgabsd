@@ -1,0 +1,82 @@
+About OpenVAS-CLI
+-----------------
+
+The module OpenVAS-CLI collects command line tools
+to handle with the OpenVAS services via the respective
+protocols.
+
+The best supported service is currently the OpenVAS-Manager (openvasmd).
+
+OpenVAS-CLI is licensed under GNU General Public License Version 2 or
+any later version.  Please see file COPYING for details.
+
+All parts of OpenVAS-CLI are Copyright (C) by Greenbone Networks GmbH
+(see http://www.greenbone.net).
+
+
+Howto use
+---------
+
+The command line tools will access a service.
+The service must be reachable via the network.
+
+The program usage message follows.
+
+Usage:
+  omp [OPTION...] - OpenVAS OMP Command Line Interface
+
+Help Options:
+  -?, --help                      Show help options
+
+Application Options:
+  -h, --host=<host>               Connect to manager on host <host>
+  -p, --port=<number>             Use port number <number>
+  -V, --version                   Print version.
+  -v, --verbose                   Verbose messages (WARNING: may reveal passwords).
+  --use-certs                     Use client certificates to authenticate
+  -u, --username=<username>       OMP username
+  -w, --password=<password>       OMP password
+  --config-file=<config-file>     Configuration file for connection parameters.
+  -P, --prompt                    Prompt to exit.
+  -O, --get-omp-version           Print OMP version.
+  -n, --name=<name>               Name for create-task.
+  -C, --create-task               Create a task.
+  -m, --comment=<name>            Comment for create-task.
+  -c, --config=<config>           Config for create-task.
+  -r, --rc                        Create task with RC read from stdin.
+  -t, --target=<target>           Target for create-task.
+  -E, --delete-report             Delete one or more reports.
+  -D, --delete-task               Delete one or more tasks.
+  -R, --get-report                Get report of one task.
+  -F, --get-report-formats        Get report formats. (OMP 2.0 only)
+  -f, --format=<format>           Format for get-report.
+  -G, --get-tasks                 Get status of one, many or all tasks.
+  -g, --get-configs               Get configs.
+  -T, --get-targets               Get targets.
+  -i, --pretty-print              In combination with -X, pretty print the response.
+  -S, --start-task                Start one or more tasks.
+  -M, --modify-task               Modify a task.
+  --file                          Add text in stdin as file on task.
+  -X, --xml=<command>             XML command (e.g. "<help/>"").  "-" to read from stdin.
+
+Some commands return elements in base64 encoding.
+Here is an example how to extract such into a file:
+
+omp -X '<help format="HTML"/>' | xmlstarlet sel -t -v /help_response/schema/text\(\) | base64 -d > omp.html
+
+
+Configuration file of omp
+-------------------------
+
+The configuration file ~/omp.config can be used to store connection parameter
+like host, port, username and password. Alternatively, the connection
+parameter can be passed with the respective options (e.g. --username, see
+above) or read from a file specified with the --configfile option.
+
+An exemplary configuration file looks like
+
+[Connection]
+host=localhost
+port=9390
+username=exampleuser
+password=examplepassword

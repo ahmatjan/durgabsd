@@ -1,0 +1,13 @@
+* v1.2 -> v1.2
+
+- After compilation, move binaries from src folder into bin folder
+
+* v1.1 -> v1.2
+
+- Open Source the project
+- License is MIT
+- Moved repository to github: https://github.com/hashcat/hashcat-utils
+- Added CHANGES
+- Added LICENSE
+- Added README.md
+

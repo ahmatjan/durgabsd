@@ -1,0 +1,6 @@
+# Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
+
+root:
+  id: 1
+  type_id: 1
+  label: root node

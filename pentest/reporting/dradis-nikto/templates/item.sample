@@ -1,0 +1,6 @@
+<item id="750000" method="GET" osvdbid="3268" osvdblink="3268_LINK">
+  <description><![CDATA[/: Directory indexing found.]]></description>
+  <uri><![CDATA[/]]></uri>
+  <namelink><![CDATA[http://localhost:80/]]></namelink>
+  <iplink><![CDATA[http://127.0.0.1:80/]]></iplink>
+</item>

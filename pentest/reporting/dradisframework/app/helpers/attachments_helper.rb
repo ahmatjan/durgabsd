@@ -1,0 +1,2 @@
+module AttachmentsHelper # :nodoc:
+end

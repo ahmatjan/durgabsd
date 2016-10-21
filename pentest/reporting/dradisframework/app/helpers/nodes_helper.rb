@@ -1,0 +1,2 @@
+module NodesHelper # :nodoc:
+end

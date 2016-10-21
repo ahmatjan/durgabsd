@@ -1,0 +1,13 @@
+--no-private
+--markup=markdown
+--verbose
+--title "Arachni - Web Application Security Scanner Framework"
+components/**/*.rb
+lib/**/*.rb
+ui/**/*.rb
+-
+CHANGELOG.md
+LICENSE.md
+AUTHORS.md
+CONTRIBUTORS.md
+ACKNOWLEDGMENTS.md
